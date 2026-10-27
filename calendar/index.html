@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blaine Auction Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/lib/gate.css">
+<style>
+/* Layout: month grid beside a list. Click a day to see it and add to it; click an event to edit it in place. Every change saves to the sheet's Calendar tab. Shares Auction HQ's palette. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --sunk: #eceff4; --ink: #17233a; --muted: #5a667c; --line: #d9dfe8;
+  --accent: #1f4fbf; --accent-ink: #ffffff; --danger: #b0261d; --today: #f2b632;
+  --meeting: #2a59a3; --meeting-bg: #e4ecf8;
+  --deadline: #b0261d; --deadline-bg: #fbe6e4;
+  --goal: #8a5a00; --goal-bg: #fbefd2;
+  --school: #1d7a4a; --school-bg: #e3f3ea;
+  --event: #6b3fa0; --event-bg: #efe7f8;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1520; --surface: #172131; --sunk: #222c3c; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
+    --accent: #7ea2ff; --accent-ink: #0f1520; --danger: #ff958b;
+    --meeting: #93b8f6; --meeting-bg: #18263d; --deadline: #ff958b; --deadline-bg: #3b1a18;
+    --goal: #f2c46a; --goal-bg: #3a2f14; --school: #7fd6a4; --school-bg: #173328; --event: #c9a6f2; --event-bg: #2c1f3d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1520; --surface: #172131; --sunk: #222c3c; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
+  --accent: #7ea2ff; --accent-ink: #0f1520; --danger: #ff958b;
+  --meeting: #93b8f6; --meeting-bg: #18263d; --deadline: #ff958b; --deadline-bg: #3b1a18;
+  --goal: #f2c46a; --goal-bg: #3a2f14; --school: #7fd6a4; --school-bg: #173328; --event: #c9a6f2; --event-bg: #2c1f3d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap {
+  max-width: 1180px; margin: 0 auto; display: grid; gap: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 22px 48px;
+}
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; justify-content: space-between; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 4px; }
+.eyebrow a { color: inherit; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 5vw, 36px); line-height: 1.05; margin: 0; }
+.head-right { display: flex; gap: 10px; align-items: center; }
+.savestate { font-size: 13px; color: var(--muted); }
+.savestate.bad { color: var(--danger); font-weight: 600; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 12px; cursor: pointer; min-height: 38px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.icon { width: 38px; padding: 0; font-size: 18px; line-height: 1; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; }
+.nav { display: flex; gap: 6px; align-items: center; }
+.month-name { font-family: var(--display); font-weight: 600; font-size: 20px; min-width: 170px; text-align: center; }
+.types { display: flex; flex-wrap: wrap; gap: 6px; }
+.tchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; cursor: pointer; font-size: 13px; }
+.tchip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.tchip[aria-pressed="false"] { opacity: .45; }
+.tchip[aria-pressed="false"] i { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+
+.layout { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 920px) { .layout { grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); } .side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; } }
+
+.month { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.dow, .weeks { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.dow div { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 8px 6px; border-bottom: 1px solid var(--line); }
+.day { min-height: 104px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 4px 4px 6px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; min-width: 0; }
+.day:nth-child(7n) { border-right: 0; }
+.day.out { background: var(--sunk); }
+.day.out .dnum { color: var(--muted); }
+.day.sel { box-shadow: inset 0 0 0 2px var(--accent); }
+.dnum { align-self: flex-start; border: 0; background: none; padding: 2px 6px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.day.today .dnum { background: var(--today); color: #17233a; }
+.ev { display: block; width: 100%; text-align: left; border: 0; border-left: 3px solid var(--c); background: var(--cb); color: var(--ink); border-radius: 5px; padding: 1px 5px; font-size: 12px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.ev.tent { background: transparent; border: 1px dashed var(--c); border-left: 3px solid var(--c); }
+.ev.done { text-decoration: line-through; opacity: .6; }
+.more { border: 0; background: none; padding: 0 5px; font-size: 11.5px; color: var(--muted); text-align: left; cursor: pointer; }
+.dots { display: none; gap: 3px; flex-wrap: wrap; padding: 0 4px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+@media (max-width: 640px) {
+  .day { min-height: 54px; padding: 3px 2px; align-items: center; }
+  .dnum { align-self: center; padding: 2px 5px; }
+  .day .ev, .day .more { display: none; }
+  .dots { display: flex; justify-content: center; }
+  .dow div { padding: 6px 2px; text-align: center; }
+}
+
+.side { display: grid; gap: 10px; align-content: start; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; padding: 6px 12px; cursor: pointer; min-height: 36px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.list-title { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+.group { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 8px 2px 0; }
+.empty { color: var(--muted); font-size: 14px; padding: 10px 2px; }
+ul.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.row { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 10px; }
+.row.tent { border-style: dashed; border-left-style: solid; }
+.row.open { border-color: var(--accent); border-left-color: var(--c); }
+.row.hit { animation: hit 1.2s ease-out; }
+@keyframes hit { from { box-shadow: 0 0 0 4px var(--accent); } to { box-shadow: 0 0 0 0 transparent; } }
+.rtop { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px 8px 8px; cursor: pointer; }
+.when { text-align: center; line-height: 1.05; }
+.when b { display: block; font-family: var(--display); font-size: 19px; font-variant-numeric: tabular-nums; }
+.when span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.rmain { min-width: 0; display: grid; gap: 1px; }
+.fx { border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 2px 5px; margin-left: -5px; width: 100%; min-width: 0; }
+.fx:hover { border-color: var(--line); }
+.fx:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+.ttl { font-weight: 600; }
+.row.done .ttl { text-decoration: line-through; color: var(--muted); }
+.meta { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag { font-size: 11px; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; color: var(--c); background: var(--cb); white-space: nowrap; }
+.rbody { display: grid; gap: 8px; padding: 2px 12px 12px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.field { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea { font-size: 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 6px 8px; min-height: 36px; width: 100%; }
+.field textarea { min-height: 60px; resize: vertical; }
+.field.wide { grid-column: 1 / -1; }
+.rfoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.del { border: 0; background: none; color: var(--danger); cursor: pointer; padding: 4px 0; font-size: 13px; }
+.stamp { font-size: 11.5px; color: var(--muted); }
+.row.draft { border-style: dashed; }
+.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 12px; display: flex; gap: 14px; align-items: center; z-index: 50; font-size: 14px; max-width: calc(100% - 32px); }
+.toast button { border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .row.hit { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow"><a href="/">Auction HQ</a> · 2027</p>
+      <h1>Calendar</h1>
+    </div>
+    <div class="head-right">
+      <span class="savestate" id="saveState" role="status" aria-live="polite">Loading…</span>
+      <button type="button" class="btn primary" id="addBtn">+ Add</button>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="nav">
+      <button type="button" class="btn icon" id="prev" aria-label="Previous month">‹</button>
+      <h2 class="month-name" id="monthName" aria-live="polite"></h2>
+      <button type="button" class="btn icon" id="next" aria-label="Next month">›</button>
+      <button type="button" class="btn" id="todayBtn">Today</button>
+    </div>
+    <div class="types" id="types" role="group" aria-label="Show types"></div>
+  </div>
+
+  <div class="layout">
+    <section class="month" aria-label="Month">
+      <div class="dow" aria-hidden="true"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+      <div class="weeks" id="weeks"></div>
+    </section>
+    <section class="side" aria-labelledby="listTitle">
+      <div class="list-head">
+        <h2 class="list-title" id="listTitle">Upcoming</h2>
+        <div class="seg" role="group" aria-label="List">
+          <button type="button" data-mode="up" aria-pressed="true">Upcoming</button>
+          <button type="button" data-mode="month" aria-pressed="false">Month</button>
+          <button type="button" data-mode="past" aria-pressed="false">Past</button>
+        </div>
+      </div>
+      <div id="list"></div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" hidden><span id="toastText"></span><button type="button" id="toastUndo">Undo</button></div>
+
+<script type="module">
+import * as live from '/lib/api.js';
+
+const TAB = 'Calendar';
+const TYPES = [
+  { id: 'meeting', name: 'Meeting' },
+  { id: 'deadline', name: 'Deadline' },
+  { id: 'goal', name: 'Goal' },
+  { id: 'school', name: 'School' },
+  { id: 'event', name: 'Event' }
+];
+const STATUS = [['set', 'Set'], ['tentative', 'Tentative'], ['done', 'Done']];
+const FIELDS = ['id', 'date', 'end', 'time', 'title', 'type', 'status', 'owner', 'note', 'source', 'updatedAt'];
+const TZ = 'America/Los_Angeles';
+
+// ?demo runs the page on made-up rows in memory, for testing without the sheet.
+const DEMO = new URLSearchParams(location.search).has('demo');
+const api = DEMO ? demoApi() : live;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+const parse = s => new Date(s + 'T00:00:00Z');
+const addDays = (s, n) => { const d = parse(s); d.setUTCDate(d.getUTCDate() + n); return ymd(d); };
+const todayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+let events = [];
+let view = todayStr().slice(0, 7);          // 'YYYY-MM' shown in the grid
+let mode = 'up';                             // up | month | past | day
+let selDay = null;
+let openId = null;
+let draft = null;                            // unsaved new event, saved once it has a title
+let shown = new Set(TYPES.map(t => t.id));
+const timers = new Map();
+let queue = Promise.resolve();
+let pending = 0, failed = false;
+let lastDeleted = null, toastTimer = null;
+
+/* ---------- data ---------- */
+
+// The sheet can hand back dates or times as timestamps; bring them back to plain text.
+function cleanDate(v) {
+  if (!v) return '';
+  v = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const d = new Date(v);
+  if (isNaN(d)) return '';
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+function cleanTime(v) {
+  if (!v) return '';
+  v = String(v);
+  const m = v.match(/^(\d{1,2}):(\d{2})/);
+  if (m) return pad(+m[1]) + ':' + m[2];
+  const d = new Date(v);
+  if (isNaN(d)) return '';
+  return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+}
+function clean(r) {
+  const o = {};
+  FIELDS.forEach(k => o[k] = r[k] == null ? '' : String(r[k]));
+  o.date = cleanDate(r.date); o.end = cleanDate(r.end); o.time = cleanTime(r.time);
+  if (!TYPES.some(t => t.id === o.type)) o.type = 'event';
+  if (!STATUS.some(s => s[0] === o.status)) o.status = 'set';
+  return o;
+}
+const last = e => (e.end && e.end > e.date) ? e.end : e.date;
+const byWhen = (a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')) || a.title.localeCompare(b.title);
+const visible = e => e.date && shown.has(e.type);
+const onDay = (e, d) => e.date <= d && last(e) >= d;
+
+async function load(quiet) {
+  try {
+    const tabs = await api.read([TAB]);
+    const rows = (tabs[TAB] || []).map(clean).filter(r => r.id);
+    // Keep anything mid-edit or waiting to save as it is on screen.
+    const keep = new Map(events.filter(e => timers.has(e.id) || e.id === focusedId()).map(e => [e.id, e]));
+    events = rows.map(r => keep.get(r.id) || r);
+    keep.forEach((e, id) => { if (!events.some(x => x.id === id)) events.push(e); });
+    if (!quiet) setState(events.length ? 'Saved' : 'Nothing saved yet');
+    render();
+  } catch (err) {
+    if (!quiet) setState('Couldn’t load. Refresh to try again.', true);
+  }
+}
+
+function focusedId() { const r = document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-id]'); return r ? r.dataset.id : null; }
+
+function setState(t, bad) { const s = $('saveState'); s.textContent = t; s.classList.toggle('bad', !!bad); }
+
+function schedule(e) {
+  clearTimeout(timers.get(e.id));
+  setState('Saving…');
+  timers.set(e.id, setTimeout(() => { timers.delete(e.id); send(() => api.upsert(TAB, { ...e, updatedAt: new Date().toISOString() })); }, 700));
+}
+function send(job) {
+  pending++;
+  queue = queue.then(job).then(() => { failed = false; }, () => { failed = true; }).finally(() => {
+    pending--;
+    if (!pending && !timers.size) setState(failed ? 'Couldn’t save. Edit again to retry.' : 'Saved', failed);
+  });
+}
+function rid() { return 'cal-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+/* ---------- rendering ---------- */
+
+function render() { renderTypes(); renderMonth(); renderList(); }
+
+function renderTypes() {
+  const box = $('types');
+  if (box.children.length) { [...box.children].forEach(b => b.setAttribute('aria-pressed', shown.has(b.dataset.t))); return; }
+  box.innerHTML = TYPES.map(t => `<button type="button" class="tchip" data-t="${t.id}" aria-pressed="true" style="--c:var(--${t.id})"><i></i>${t.name}</button>`).join('');
+}
+
+function chipStyle(t) { return `--c:var(--${t});--cb:var(--${t}-bg)`; }
+
+function renderMonth() {
+  const [y, m] = view.split('-').map(Number);
+  $('monthName').textContent = MONTHS[m - 1] + ' ' + y;
+  const first = new Date(Date.UTC(y, m - 1, 1));
+  const start = addDays(ymd(first), -first.getUTCDay());
+  const daysIn = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const cells = Math.ceil((first.getUTCDay() + daysIn) / 7) * 7;
+  const today = todayStr();
+  const evs = events.filter(visible).sort(byWhen);
+  let html = '';
+  for (let i = 0; i < cells; i++) {
+    const d = addDays(start, i);
+    const list = evs.filter(e => onDay(e, d));
+    const cls = ['day'];
+    if (d.slice(0, 7) !== view) cls.push('out');
+    if (d === today) cls.push('today');
+    if (mode === 'day' && d === selDay) cls.push('sel');
+    const dt = parse(d);
+    const label = `${DOW[dt.getUTCDay()]}, ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}` + (list.length ? `, ${list.length} item${list.length > 1 ? 's' : ''}` : '');
+    const chips = list.slice(0, 3).map(e => `<button type="button" class="ev${e.status === 'tentative' ? ' tent' : ''}${e.status === 'done' ? ' done' : ''}" data-ev="${esc(e.id)}" style="${chipStyle(e.type)}" title="${esc(e.title)}">${e.time && e.date === d ? `<span class="sr">${fmtTime(e.time)} </span>` : ''}${esc(e.title || 'Untitled')}</button>`).join('');
+    const more = list.length > 3 ? `<button type="button" class="more" data-day="${d}">+${list.length - 3} more</button>` : '';
+    const dots = list.length ? `<div class="dots" aria-hidden="true">${list.slice(0, 4).map(e => `<i style="--c:var(--${e.type})"></i>`).join('')}</div>` : '';
+    html += `<div class="${cls.join(' ')}" data-day="${d}"><button type="button" class="dnum" data-day="${d}" aria-label="${label}">${dt.getUTCDate()}</button>${chips}${more}${dots}</div>`;
+  }
+  $('weeks').innerHTML = html;
+}
+
+function fmtTime(t) {
+  if (!t) return '';
+  const [h, mm] = t.split(':').map(Number);
+  return ((h % 12) || 12) + (mm ? ':' + pad(mm) : '') + (h < 12 ? ' am' : ' pm');
+}
+function fmtRange(e) {
+  const a = parse(e.date);
+  let s = `${DOW[a.getUTCDay()]} ${MON[a.getUTCMonth()]} ${a.getUTCDate()}`;
+  if (e.end && e.end > e.date) { const b = parse(e.end); s += ` to ${b.getUTCMonth() === a.getUTCMonth() ? '' : MON[b.getUTCMonth()] + ' '}${b.getUTCDate()}`; }
+  return s;
+}
+
+function listItems() {
+  const today = todayStr();
+  const evs = events.filter(visible);
+  if (mode === 'up') return evs.filter(e => last(e) >= today).sort(byWhen);
+  if (mode === 'past') return evs.filter(e => last(e) < today).sort((a, b) => byWhen(b, a));
+  if (mode === 'month') return evs.filter(e => e.date.slice(0, 7) <= view && last(e).slice(0, 7) >= view).sort(byWhen);
+  return evs.filter(e => onDay(e, selDay)).sort(byWhen);
+}
+
+function renderList() {
+  document.querySelectorAll('.seg [data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+  let title = { up: 'Upcoming', past: 'Past', month: $('monthName').textContent }[mode];
+  if (mode === 'day') { const d = parse(selDay); title = `${DOW[d.getUTCDay()]}, ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; }
+  $('listTitle').textContent = title;
+
+  const keepFocus = captureFocus();
+  const items = listItems();
+  if (openId && !items.some(e => e.id === openId) && !(draft && draft.id === openId)) { /* stays open in data, just not shown */ }
+  let html = '';
+  if (draft && (mode !== 'day' || draft.date === selDay)) html += `<ul class="rows">${rowHtml(draft, true)}</ul>`;
+  if (!items.length && !draft) html += `<p class="empty">${mode === 'day' ? 'Nothing on this day yet.' : 'Nothing here.'}</p>`;
+  if (mode === 'day' && !draft) html += `<button type="button" class="btn" data-act="add">+ Add on ${MON[parse(selDay).getUTCMonth()]} ${parse(selDay).getUTCDate()}</button>`;
+  let group = null, open = false;
+  items.forEach(e => {
+    const g = mode === 'day' ? '' : e.date.slice(0, 7);
+    if (g !== group) {
+      if (open) html += '</ul>';
+      if (g && mode !== 'month') { const [y, m] = g.split('-').map(Number); html += `<p class="group">${MONTHS[m - 1]} ${y}</p>`; }
+      html += '<ul class="rows">'; open = true; group = g;
+    }
+    html += rowHtml(e, false);
+  });
+  if (open) html += '</ul>';
+  $('list').innerHTML = html;
+  restoreFocus(keepFocus);
+}
+
+function rowHtml(e, isDraft) {
+  const d = parse(e.date || todayStr());
+  const isOpen = isDraft || e.id === openId;
+  const tname = (TYPES.find(t => t.id === e.type) || TYPES[4]).name;
+  const meta = [fmtRange(e), fmtTime(e.time), e.owner, e.status === 'tentative' ? 'tentative' : '', e.status === 'done' ? 'done' : ''].filter(Boolean).join(' · ');
+  const cls = ['row', isOpen ? 'open' : '', e.status === 'tentative' ? 'tent' : '', e.status === 'done' ? 'done' : '', isDraft ? 'draft' : ''].filter(Boolean).join(' ');
+  let body = '';
+  if (isOpen) {
+    const k = esc(e.id);
+    body = `<div class="rbody">
+      <div class="fields">
+        <label class="field">Date<input type="date" data-k="date" value="${esc(e.date)}" required></label>
+        <label class="field">Ends<input type="date" data-k="end" value="${esc(e.end)}" min="${esc(e.date)}"></label>
+        <label class="field">Time<input type="time" data-k="time" value="${esc(e.time)}"></label>
+        <label class="field">Type<select data-k="type">${TYPES.map(t => `<option value="${t.id}"${t.id === e.type ? ' selected' : ''}>${t.name}</option>`).join('')}</select></label>
+        <label class="field">Status<select data-k="status">${STATUS.map(([v, n]) => `<option value="${v}"${v === e.status ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label class="field">Owner<input data-k="owner" value="${esc(e.owner)}" autocomplete="off"></label>
+        <label class="field wide">Note<textarea data-k="note" rows="2">${esc(e.note)}</textarea></label>
+        <label class="field wide">Source<input data-k="source" value="${esc(e.source)}" autocomplete="off"></label>
+      </div>
+      <div class="rfoot">
+        ${isDraft ? '<span class="stamp">Saves once it has a title.</span><button type="button" class="del" data-act="discard">Discard</button>'
+                  : `<span class="stamp">${e.updatedAt ? 'Changed ' + esc(new Date(e.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : ''}</span><button type="button" class="del" data-act="delete">Delete</button>`}
+      </div>
+    </div>`;
+  }
+  return `<li class="${cls}" data-id="${esc(e.id)}" style="${chipStyle(e.type)}">
+    <div class="rtop" data-act="toggle">
+      <div class="when" aria-hidden="true"><b>${d.getUTCDate()}</b><span>${MON[d.getUTCMonth()]}</span></div>
+      <div class="rmain">
+        <label class="sr" for="t-${esc(e.id)}">Title</label>
+        <input class="fx ttl" id="t-${esc(e.id)}" data-k="title" value="${esc(e.title)}" placeholder="${isDraft ? 'What’s happening?' : 'Untitled'}" autocomplete="off">
+        <div class="meta">${esc(meta)}</div>
+      </div>
+      <span class="tag">${tname}</span>
+    </div>${body}
+  </li>`;
+}
+
+function captureFocus() {
+  const a = document.activeElement;
+  if (!a || !a.dataset || !a.dataset.k) return null;
+  const row = a.closest('[data-id]');
+  return row ? { id: row.dataset.id, k: a.dataset.k, s: a.selectionStart, e: a.selectionEnd } : null;
+}
+function restoreFocus(f) {
+  if (!f) return;
+  const el = document.querySelector(`[data-id="${CSS.escape(f.id)}"] [data-k="${f.k}"]`);
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  try { if (f.s != null) el.setSelectionRange(f.s, f.e); } catch (err) {}
+}
+
+function find(id) { return draft && draft.id === id ? draft : events.find(e => e.id === id); }
+
+/* ---------- actions ---------- */
+
+function openEvent(id) {
+  const e = find(id); if (!e) return;
+  openId = id;
+  view = e.date.slice(0, 7);
+  if (mode === 'day' && !onDay(e, selDay)) { mode = 'day'; selDay = e.date; }
+  else if (mode === 'up' && last(e) < todayStr()) mode = 'past';
+  else if (mode === 'past' && last(e) >= todayStr()) mode = 'up';
+  else if (mode === 'month') { /* view already moved to its month */ }
+  render();
+  const row = document.querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (row) { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); row.classList.add('hit'); row.querySelector('[data-k="title"]').focus({ preventScroll: true }); }
+}
+
+function pickDay(d) {
+  mode = 'day'; selDay = d; openId = null;
+  if (d.slice(0, 7) !== view) view = d.slice(0, 7);
+  if (draft && !draft.title) draft = null;
+  render();
+}
+
+function newDraft(date) {
+  if (draft && draft.title) commitDraft();
+  draft = { id: rid(), date, end: '', time: '', title: '', type: 'meeting', status: 'set', owner: '', note: '', source: '', updatedAt: '' };
+  openId = draft.id;
+  mode = 'day'; selDay = date; view = date.slice(0, 7);
+  render();
+  const t = document.querySelector(`[data-id="${draft.id}"] [data-k="title"]`);
+  if (t) { t.focus(); t.closest('.row').scrollIntoView({ block: 'nearest' }); }
+}
+
+function commitDraft() {
+  if (!draft || !draft.title.trim()) return;
+  const e = draft; draft = null;
+  events.push(e);
+  schedule(e);
+}
+
+function edit(id, k, v) {
+  const e = find(id); if (!e) return;
+  if (k === 'date' && !v) return;
+  e[k] = v;
+  if (k === 'date' && e.end && e.end < v) e.end = '';
+  if (e === draft) {
+    if (k === 'title' && v.trim()) { commitDraft(); }
+    if (k !== 'title') { if (k === 'date') { selDay = v; view = v.slice(0, 7); } render(); }
+    return;
+  }
+  schedule(e);
+  if (k === 'title') { renderMonth(); return; }       // keep typing smooth
+  if (k === 'date') view = v.slice(0, 7);
+  if (k === 'date' && mode === 'day') selDay = v;
+  render();
+}
+
+function removeEvent(id) {
+  const i = events.findIndex(e => e.id === id); if (i < 0) return;
+  const e = events[i];
+  clearTimeout(timers.get(id)); timers.delete(id);
+  events.splice(i, 1);
+  openId = null;
+  lastDeleted = e;
+  setState('Saving…');
+  send(() => api.remove(TAB, id));
+  render();
+  showToast(`Deleted “${e.title || 'Untitled'}”.`);
+}
+
+function undoDelete() {
+  if (!lastDeleted) return;
+  const e = lastDeleted; lastDeleted = null;
+  events.push(e); schedule(e); hideToast(); openEvent(e.id);
+}
+
+function showToast(t) { $('toastText').textContent = t; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 7000); }
+function hideToast() { $('toast').hidden = true; }
+
+/* ---------- events ---------- */
+
+$('weeks').addEventListener('click', ev => {
+  const chip = ev.target.closest('[data-ev]');
+  if (chip) { openEvent(chip.dataset.ev); return; }
+  const cell = ev.target.closest('[data-day]');
+  if (!cell) return;
+  const d = cell.dataset.day;
+  if (mode === 'day' && selDay === d && !ev.target.closest('.more')) newDraft(d);   // second click on a day adds to it
+  else pickDay(d);
+});
+$('weeks').addEventListener('dblclick', ev => {
+  if (ev.target.closest('[data-ev]')) return;
+  const cell = ev.target.closest('[data-day]'); if (cell) newDraft(cell.dataset.day);
+});
+
+$('list').addEventListener('click', ev => {
+  const act = ev.target.closest('[data-act]');
+  if (!act) return;
+  const row = act.closest('[data-id]'); const id = row && row.dataset.id;
+  if (!row && act.dataset.act !== 'add') return;
+  if (act.dataset.act === 'toggle') {
+    if (ev.target.closest('input, select, textarea')) { if (openId !== id) { openId = id; renderList(); } return; }
+    openId = openId === id ? null : id;
+    if (draft && openId !== draft.id && !draft.title) draft = null;
+    renderList();
+  } else if (act.dataset.act === 'delete') removeEvent(id);
+  else if (act.dataset.act === 'add') newDraft(selDay);
+  else if (act.dataset.act === 'discard') { draft = null; openId = null; render(); }
+});
+$('list').addEventListener('input', ev => {
+  const k = ev.target.dataset.k; if (!k) return;
+  const row = ev.target.closest('[data-id]');
+  if (ev.target.type === 'date' || ev.target.tagName === 'SELECT' || ev.target.type === 'time') return;   // handled on change
+  edit(row.dataset.id, k, ev.target.value);
+});
+$('list').addEventListener('change', ev => {
+  const k = ev.target.dataset.k; if (!k) return;
+  const row = ev.target.closest('[data-id]');
+  if (ev.target.type === 'date' || ev.target.tagName === 'SELECT' || ev.target.type === 'time') edit(row.dataset.id, k, ev.target.value);
+});
+$('list').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && ev.target.dataset.k === 'title') { ev.preventDefault(); ev.target.blur(); }
+  if (ev.key === 'Escape') { openId = null; if (draft && !draft.title) draft = null; renderList(); }
+});
+
+$('types').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-t]'); if (!b) return;
+  const t = b.dataset.t;
+  shown.has(t) ? shown.delete(t) : shown.add(t);
+  if (!shown.size) TYPES.forEach(x => shown.add(x.id));
+  render();
+});
+document.querySelector('.seg').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-mode]'); if (!b) return;
+  mode = b.dataset.mode; openId = null; if (draft && !draft.title) draft = null; render();
+});
+function shift(n) { const [y, m] = view.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); view = ymd(d).slice(0, 7); if (mode === 'day') mode = 'month'; render(); }
+$('prev').addEventListener('click', () => shift(-1));
+$('next').addEventListener('click', () => shift(1));
+$('todayBtn').addEventListener('click', () => { view = todayStr().slice(0, 7); mode = 'up'; openId = null; render(); });
+$('addBtn').addEventListener('click', () => newDraft(mode === 'day' && selDay ? selDay : todayStr()));
+$('toastUndo').addEventListener('click', undoDelete);
+
+window.addEventListener('hashchange', () => { const id = decodeURIComponent(location.hash.slice(1)); if (id) openEvent(id); });
+
+/* ---------- start ---------- */
+
+await load();
+const hash = decodeURIComponent(location.hash.slice(1));
+if (hash) openEvent(hash);
+if (!DEMO) live.poll(() => { if (!timers.size && !pending && !focusedId() && !draft) load(true); });
+
+function demoApi() {
+  const t = todayStr();
+  let rows = [
+    { id: 'd1', date: addDays(t, 1), time: '18:30', title: 'Sample team meeting', type: 'meeting', status: 'set', owner: 'Chairs', note: '', source: 'Demo' },
+    { id: 'd2', date: addDays(t, 6), title: 'Sample deadline', type: 'deadline', status: 'tentative', source: 'Demo' },
+    { id: 'd3', date: addDays(t, 6), title: 'Sample goal', type: 'goal', status: 'set' },
+    { id: 'd4', date: addDays(t, 12), end: addDays(t, 16), title: 'Sample school break', type: 'school', status: 'set' },
+    { id: 'd5', date: addDays(t, -3), title: 'Sample past event', type: 'event', status: 'done' }
+  ];
+  const wait = v => new Promise(r => setTimeout(() => r(v), 150));
+  window.__demoRows = () => rows;
+  return {
+    read: () => wait({ [TAB]: rows.map(r => ({ ...r })) }),
+    upsert: (tab, row) => { const i = rows.findIndex(r => r.id === row.id); i < 0 ? rows.push({ ...row }) : rows[i] = { ...row }; return wait(row); },
+    remove: (tab, id) => { rows = rows.filter(r => r.id !== id); return wait({ ok: true }); }
+  };
+}
+</script>
+</body>
+</html>

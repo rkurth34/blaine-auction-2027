@@ -16,11 +16,15 @@
  *   setting   { name, value }                  -> { ok }         Tracker settings tab
  *   saveOrg   { chart, rev }                   -> { rev }        Org chart JSON + readable tabs
  *   readOrg   {}                               -> { chart, rev }
+ *
+ * The Calendar tab uses read / upsert / remove like any other tab. It is created on first use,
+ * with every cell kept as plain text so dates and times come back as typed.
  */
 
 var TABS = ['Contacts', 'Business donations', 'Sponsors', 'Family donations', 'Hosted events',
-  'Class art', 'Tracker settings', 'Tools', 'Org chart', 'Timeline'];
+  'Class art', 'Tracker settings', 'Tools', 'Org chart', 'Timeline', 'Calendar'];
 var ORG_DATA = 'Org chart data';
+var CAL_HEADERS = ['id', 'date', 'end', 'time', 'title', 'type', 'status', 'owner', 'note', 'source', 'updatedAt'];
 
 function doGet() {
   return out({ ok: true, service: 'blaine-2027-auction' });
@@ -68,6 +72,7 @@ function ss() { return SpreadsheetApp.getActiveSpreadsheet(); }
 function sheet(name) {
   if (TABS.indexOf(name) === -1) throw new Error('unknown tab');
   var sh = ss().getSheetByName(name);
+  if (!sh && name === 'Calendar') sh = calendarSheet();
   if (!sh) throw new Error('missing tab ' + name);
   return sh;
 }
@@ -227,6 +232,14 @@ function replaceBody(name, rows) {
   var width = sh.getLastColumn();
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, width).clearContent();
   if (rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows.map(function (r) { return r.map(safe); }));
+}
+
+function calendarSheet() {
+  var sh = ss().insertSheet('Calendar');
+  sh.getRange('A:K').setNumberFormat('@');
+  sh.getRange(1, 1, 1, CAL_HEADERS.length).setValues([CAL_HEADERS]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  return sh;
 }
 
 function authorize() {
