@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blaine Auction HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column. Countdown band on top, then live tools, then coming-soon ideas, then archive. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #17233a; --muted: #5a667c; --line: #d9dfe8;
+  --accent: #1f4fbf; --accent-ink: #ffffff; --paddle: #f2b632;
+  --chip-live: #1d7a4a; --chip-live-bg: #e3f3ea; --chip-preview: #8a5a00; --chip-preview-bg: #fbefd2; --chip-idea-bg: #eceff4;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1520; --surface: #172131; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
+    --accent: #7ea2ff; --accent-ink: #0f1520;
+    --chip-live: #7fd6a4; --chip-live-bg: #173328; --chip-preview: #f2c46a; --chip-preview-bg: #3a2f14; --chip-idea-bg: #222c3c;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(24px + env(safe-area-inset-top, 0px)) 48px;
+  display: grid; gap: 28px;
+}
+header { display: grid; gap: 14px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 6vw, 40px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.count { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.paddle { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--paddle); color: #17233a; display: grid; place-items: center;
+  font-family: var(--display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 3px rgba(23,35,58,.15); }
+.count-text { display: grid; gap: 2px; min-width: 0; }
+.count-big { font-family: var(--display); font-weight: 600; font-size: 20px; }
+.count-sub { color: var(--muted); font-size: 13.5px; }
+section { display: grid; gap: 12px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.tile { display: grid; gap: 6px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; color: inherit; text-decoration: none; min-width: 0; transition: border-color .15s, transform .15s; }
+a.tile:hover { border-color: var(--accent); transform: translateY(-1px); }
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tile-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tile-name { font-weight: 600; font-size: 16px; }
+.tile-desc { color: var(--muted); font-size: 13.5px; }
+.open { color: var(--accent); font-weight: 600; font-size: 13.5px; margin-top: 4px; }
+.chip { font-size: 11.5px; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.live { color: var(--chip-live); background: var(--chip-live-bg); }
+.chip.preview { color: var(--chip-preview); background: var(--chip-preview-bg); }
+.chip.idea, .chip.archive { color: var(--muted); background: var(--chip-idea-bg); }
+.tile.soon { background: transparent; border-style: dashed; }
+.archive-list { display: grid; gap: 8px; }
+.archive-list a { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 14px; border: 1px solid var(--line);
+  border-radius: 10px; color: inherit; text-decoration: none; background: var(--surface); }
+.archive-list a:hover { border-color: var(--accent); }
+.archive-list span:first-child { min-width: 0; }
+.arch-desc { display: block; color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } a.tile:hover { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Catharine Blaine K-8 PTA · 2027 Auction · Procurement</div>
+    <h1>Auction HQ</h1>
+    <div class="count" aria-live="polite">
+      <div class="paddle" id="days">--</div>
+      <div class="count-text">
+        <div class="count-big" id="count-big">days to auction night</div>
+        <div class="count-sub" id="count-sub"></div>
+      </div>
+    </div>
+  </header>
+  <section aria-labelledby="h-tools"><h2 id="h-tools">Tools</h2><div class="grid" id="tools"></div></section>
+  <section aria-labelledby="h-soon"><h2 id="h-soon">Coming soon</h2><div class="grid" id="soon"></div></section>
+  <section aria-labelledby="h-archive"><h2 id="h-archive">Archive</h2><div class="archive-list" id="archive"></div></section>
+</div>
+<script>
+// Edit this block to add or change tools. status: "live", "preview", "idea" or "archive".
+const AUCTION_DATE = "2027-05-01";
+const AUCTION_LABEL = "Saturday, May 1, 2027 (date set for now)";
+const TOOLS = [
+  { name: "Org Chart", status: "live", url: "https://claude.ai/artifact/Vjj26xwkQd9d2E6Ufk1qCY",
+    desc: "Every committee seat for 2027. Drag people between seats and mark each one confirmed, ask to return or open." },
+  { name: "Procurement Tracker", status: "live", url: "/tracker/",
+    desc: "2027 overview plus a page for each donation stream, including the business donations CRM." },
+  { name: "Contacts", status: "live", url: "/contacts/",
+    desc: "Volunteers, committee and PTA partners with email and phone. Search, copy and edit." },
+  { name: "Countdown Timeline", status: "idea", desc: "The Chair Guide's month-by-month steps, dated back from auction night." },
+  { name: "Monday Procurement Digest", status: "idea", desc: "Weekly tally of donations in and asks out, with a team update drafted for you to send." },
+  { name: "Donor Thank-You Log", status: "idea", desc: "Track each gift from received to receipt sent to thank-you sent. Feeds the tax letters." },
+  { name: "Team Roster & Seat Sign-up", status: "idea", desc: "A roster volunteers can open to claim an empty seat." },
+  { name: "2026 Auction CRM", status: "archive", url: "https://blaine-pta-crm.vercel.app", desc: "Last year's donor CRM. Reference for the 2027 tracker." },
+  { name: "Org Chart draft", status: "archive", url: "https://claude.ai/artifact/SJfLBDiDGaYRtyHWgRMaPJ", desc: "The first written draft of the 2027 org chart." }
+];
+
+const CHIP = { live: "Live", preview: "Preview", idea: "Idea", archive: "Archive" };
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const external = url => /^https?:/.test(url);
+
+function link(a, url) { a.href = url; if (external(url)) { a.target = "_blank"; a.rel = "noopener"; } }
+
+function tile(t) {
+  const isLink = !!t.url && t.status !== "idea";
+  const n = el(isLink ? "a" : "div", "tile" + (isLink ? "" : " soon"));
+  if (isLink) link(n, t.url);
+  const top = el("div", "tile-top");
+  top.append(el("span", "tile-name", t.name), el("span", "chip " + t.status, CHIP[t.status] || t.status));
+  n.append(top, el("div", "tile-desc", t.desc));
+  if (isLink) n.append(el("div", "open", external(t.url) ? "Open ↗" : "Open"));
+  return n;
+}
+
+function render() {
+  const tools = document.getElementById("tools"), soon = document.getElementById("soon"), arch = document.getElementById("archive");
+  TOOLS.forEach(t => {
+    if (t.status === "archive") {
+      const a = el("a"); link(a, t.url);
+      const left = el("span"); left.append(el("span", null, t.name), el("span", "arch-desc", t.desc));
+      a.append(left, el("span", "chip archive", "Open ↗"));
+      arch.append(a);
+    } else if (t.status === "idea") soon.append(tile(t));
+    else tools.append(tile(t));
+  });
+  arch.closest("section").hidden = !arch.children.length;
+  soon.closest("section").hidden = !soon.children.length;
+}
+
+function countdown() {
+  // Whole days from today (Pacific) to auction day.
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" });
+  const today = new Date(fmt.format(new Date()) + "T00:00:00Z");
+  const days = Math.round((new Date(AUCTION_DATE + "T00:00:00Z") - today) / 86400000);
+  const d = document.getElementById("days"), big = document.getElementById("count-big");
+  document.getElementById("count-sub").textContent = AUCTION_LABEL;
+  if (days > 0) { d.textContent = days; big.textContent = (days === 1 ? "day" : "days") + " to auction night · about " + Math.round(days / 7) + " weeks"; }
+  else if (days === 0) { d.textContent = "0"; big.textContent = "Auction night is today"; }
+  else { d.textContent = "✓"; big.textContent = "Auction night has passed"; }
+}
+
+render();
+countdown();
+</script>
+</body>
+</html>

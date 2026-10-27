@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blaine 2027 Procurement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/lib/gate.css">
+<style>
+/* Layout: sticky ledger header with stream tabs; overview = scoreboard + stream table + countdown; stream pages = filter rail over a claim-and-track table with a side drawer */
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#1d2433; --muted:#5f6675; --line:#e2dfd8; --soft:#efede8;
+  --accent:#c4561b; --accent-ink:#ffffff; --accent-soft:#fbe9de; --navy:#24345a;
+  --good:#2f7d4f; --good-soft:#e2f2e8; --warn:#9a6b00; --warn-soft:#fbf1d6; --bad:#b03a2e; --bad-soft:#f8e3e0; --info:#2f5aa8; --info-soft:#e4ebf8;
+  --danger:#b03a2e;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14171e; --panel:#1c2029; --ink:#e9e7e2; --muted:#a3a8b4; --line:#2e3340; --soft:#232834;
+  --accent:#ef8a4c; --accent-ink:#1a1006; --accent-soft:#3a2516; --navy:#b8c6ea;
+  --good:#6cc493; --good-soft:#1b3326; --warn:#e3b54a; --warn-soft:#352b12; --bad:#ee8a7f; --bad-soft:#3a1f1c; --info:#8fb0ee; --info-soft:#1d2a44; --danger:#ee8a7f; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:12px 0}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;min-width:0}
+.brand a{color:var(--muted);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.brand h1{font-family:var(--f-display);font-size:21px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.brand .yr{font-family:var(--f-mono);font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 6px}
+.who{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+select,input,textarea,button{font:inherit;color:inherit}
+select,input[type=text],input[type=number],input[type=search],textarea{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+textarea{width:100%;min-height:70px;resize:vertical}
+button{cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--panel);padding:6px 11px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;padding-top:10px;scrollbar-width:none}
+nav.tabs a{padding:9px 13px;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs a .n{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-left:5px}
+main{padding-block:22px 60px}
+h2{font-family:var(--f-display);font-size:22px;margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
+h3{font-family:var(--f-display);font-size:16px;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+.grid{display:grid;gap:16px}
+.score{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.tile .k{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:var(--f-display);font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:4px}
+.tile .v small{font-size:15px;color:var(--muted);font-weight:500}
+.meter{height:7px;background:var(--soft);border-radius:4px;margin-top:10px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.tile .foot{font-size:12px;color:var(--muted);margin-top:6px}
+.two{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);margin-top:16px}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.num,th.num{text-align:right}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--soft)}
+.stack{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nm{font-weight:600}
+.dim{color:var(--muted);font-size:12.5px}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.t-A{background:var(--good-soft);color:var(--good)}
+.t-B{background:var(--info-soft);color:var(--info)}
+.t-C{background:var(--warn-soft);color:var(--warn)}
+.t-D{background:var(--soft);color:var(--muted)}
+.t-N{background:var(--accent-soft);color:var(--accent)}
+.st-Not{background:var(--soft);color:var(--muted)}
+.st-Asked,.st-Follow{background:var(--info-soft);color:var(--info)}
+.st-Confirmed,.st-Received,.st-Thanked{background:var(--good-soft);color:var(--good)}
+.st-Declined,.st-Skip{background:var(--bad-soft);color:var(--bad)}
+.claim{font-size:12.5px;padding:3px 9px}
+.dl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.dl li{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.dl li:last-child{border-bottom:0}
+.dl .d{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dl .in{font-size:12px;color:var(--muted);white-space:nowrap}
+.dl li.past{opacity:.55}
+.dl li.next .d{color:var(--accent)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filters input[type=search]{flex:1 1 220px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border-radius:999px;padding:4px 11px;font-size:12.5px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.counts{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.counts b{color:var(--ink);font-family:var(--f-mono);font-weight:500}
+.more{display:flex;justify-content:center;padding:14px}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--panel);border-left:1px solid var(--line);z-index:20;display:flex;flex-direction:column;box-shadow:-12px 0 30px rgba(0,0,0,.12);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.drawer header{display:flex;gap:10px;align-items:flex-start;padding:16px;border-bottom:1px solid var(--line)}
+.drawer header h3{margin:0;font-size:19px;flex:1;min-width:0;overflow-wrap:anywhere}
+.drawer .body{padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.copy{display:flex;gap:6px;align-items:center;min-width:0}
+.copy span{overflow-wrap:anywhere;user-select:all;min-width:0}
+.hist{display:grid;grid-template-columns:44px minmax(0,1fr);gap:4px 10px;font-size:13px}
+.hist dt{font-family:var(--f-mono);color:var(--muted);font-size:12px}
+.hist dd{margin:0}
+.scrim{position:fixed;inset:0;background:rgba(10,12,18,.35);z-index:19}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;z-index:30;font-size:13px;max-width:calc(100% - 32px)}
+.empty{padding:30px 10px;text-align:center;color:var(--muted)}
+.banner{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13.5px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12.5px;color:var(--muted);margin-top:10px}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+@media (max-width:640px){.hide-sm{display:none}.tile .v{font-size:27px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand"><a href="/">HQ</a><h1>Blaine Auction Procurement</h1><span class="yr">2027</span></div>
+      <div class="who">
+        <label for="me">I'm</label>
+        <select id="me" aria-label="Who is using the tracker"></select>
+        <label for="eventDate">Auction</label>
+        <select id="eventDate" aria-label="Auction date"></select>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Procurement streams"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div class="empty" id="boot">Loading the 2027 list…</div>
+</main>
+<div id="drawerHost"></div>
+<div id="toastHost" aria-live="polite"></div>
+
+<script type="module">
+import * as api from '/lib/api.js';
+
+const STREAMS = [
+  {key:'overview', label:'Overview'},
+  {key:'biz', label:'Business donations', tab:'Business donations', one:'business', blurb:'Claim a business before you ask so nobody asks twice.'},
+  {key:'sponsor', label:'Sponsors', tab:'Sponsors', one:'sponsor', blurb:'Last year\'s sponsors are first to ask back.'},
+  {key:'family', label:'Family donations', tab:'Family donations', one:'family', blurb:'Hold until the PTA Giving Campaign ends Nov 30.'},
+  {key:'hosted', label:'Hosted events', tab:'Hosted events', one:'event', blurb:'Ask past hosts to run their event again.'},
+  {key:'art', label:'Class art', tab:'Class art', one:'class project', blurb:'One piece per classroom, led by room parents and art docents.'},
+];
+const STREAM_TABS = STREAMS.filter(s => s.tab).map(s => s.tab);
+const SETTINGS_TAB = 'Tracker settings';
+const STATUSES = ['Not asked','Asked','Follow up','Confirmed','Received','Thanked','Declined','Skip'];
+const SECURED = new Set(['Confirmed','Received','Thanked']);
+const TIERS = {A:'Gave recently',B:'Gave before',C:'Asked, no gift',D:'Never asked',N:'New lead'};
+const DEFAULTS = {goalCount:180, goalDollars:100000, eventDate:'2027-05-01', team:['Ryan','Nicole']};
+const DATES = ['2027-05-01','2027-05-15'];
+// Sheet column -> short key used by the page.
+const COLS = {id:'id', name:'n', tier:'tier', type:'t', neighborhood:'hood', hosts:'host', email:'e', phone:'p', website:'w', howToAsk:'how', description:'desc',
+  gave2026:'h26', gave2025:'h25', gave2024:'h24', gave2023:'h23', outcome2026:'o26', askedBy2026:'a26', carriedNote:'note', guests:'guests', price:'price',
+  asker:'asker', status:'status', item2027:'item', value2027:'value', notes2027:'notes', updatedAt:'at', updatedBy:'by'};
+const BACK = Object.fromEntries(Object.entries(COLS).map(([a,b]) => [b,a]));
+const toRow = (o, s) => { const r = {s}; for (const [c,k] of Object.entries(COLS)) r[k] = o[c] === undefined ? '' : o[c]; r.id = String(r.id); return r; };
+const toSheet = patch => { const o = {}; for (const [k,v] of Object.entries(patch)) if (BACK[k]) o[BACK[k]] = v; return o; };
+const tabOf = s => STREAMS.find(x => x.key === s).tab;
+
+let ready = false, rows = [], settings = {...DEFAULTS}, history = null, pending = 0;
+let me = '';
+try { me = localStorage.getItem('blaine27.me') || ''; } catch(e) {}
+const ui = {route:'overview', q:'', tier:'', status:'', owner:'', limit:100, open:null};
+
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '$' + Math.round(n||0).toLocaleString('en-US');
+const statusCls = s => 'st-' + String(s||'Not asked').split(' ')[0];
+
+function toast(msg){
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  $('#toastHost').replaceChildren(t); setTimeout(()=>t.remove(), 2600);
+}
+
+// ---------- data
+const rowStatus = r => r.status || 'Not asked';
+
+async function save(id, patch){
+  const r = rows.find(x => x.id === id); if (!r) return;
+  const stamp = {at: new Date().toISOString(), by: me || 'Someone'};
+  Object.assign(r, patch, stamp); render();
+  pending++;
+  try { await api.patch(tabOf(r.s), id, toSheet({...patch, ...stamp})); }
+  catch(e) { toast('Could not save. Reload and try again.'); }
+  finally { pending--; }
+}
+
+async function add(s, fields){
+  const id = 'u-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const r = {...toRow({}, s), ...fields, id, s, tier:'N', at:new Date().toISOString(), by: me || 'Someone'};
+  rows.push(r); render();
+  pending++;
+  try { await api.upsert(tabOf(s), toSheet(r)); }
+  catch(e) { toast('Could not add. Reload and try again.'); }
+  finally { pending--; }
+}
+
+async function claim(id){
+  if (!me){ toast('Pick your name at the top first'); $('#me').focus(); return; }
+  const r = rows.find(x => x.id === id); if (!r) return;
+  pending++;
+  try {
+    const res = await api.claim(tabOf(r.s), id, me, me);
+    if (res.taken){ r.asker = res.taken; render(); toast(res.taken + ' already has this one'); return; }
+    r.asker = me; r.at = new Date().toISOString(); r.by = me; render();
+    toast('Claimed. It\'s on your list.');
+  } catch(e){ toast('Could not claim right now'); }
+  finally { pending--; }
+}
+
+async function saveSettings(patch){
+  settings = {...settings, ...patch}; render();
+  pending++;
+  try { for (const [k,v] of Object.entries(patch)) await api.setting(k, Array.isArray(v) ? v.join(', ') : v); }
+  catch(e){ toast('Could not save settings'); }
+  finally { pending--; }
+}
+
+function applySettings(list){
+  const kv = Object.fromEntries(list.map(x => [String(x.key), x.value]));
+  settings = {...DEFAULTS,
+    ...(kv.team ? {team: String(kv.team).split(',').map(s=>s.trim()).filter(Boolean)} : {}),
+    ...(kv.goalCount !== undefined && kv.goalCount !== '' ? {goalCount: +kv.goalCount} : {}),
+    ...(kv.goalDollars !== undefined && kv.goalDollars !== '' ? {goalDollars: +kv.goalDollars} : {}),
+    ...(kv.eventDate ? {eventDate: String(kv.eventDate).slice(0,10)} : {})};
+  history = kv.pkgs2025 ? {pkgs2025:+kv.pkgs2025, value2025:+kv.value2025, sold2025:+kv.sold2025} : null;
+}
+
+// ---------- dates
+function addDays(iso, n){ const d = new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return d; }
+const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+function deadlines(){
+  const E = settings.eventDate;
+  return [
+    [new Date('2026-11-01T12:00:00'), 'PTA Giving Campaign runs through Nov 30. Hold family asks until it ends.'],
+    [new Date('2026-11-10T12:00:00'), 'PTA meeting'],
+    [new Date('2026-12-01T12:00:00'), 'Confirm the date with the principal. Welcome-back note to the 2026 team.'],
+    [new Date('2027-01-11T12:00:00'), 'Build 2027 donation and sponsor forms. Assign each sponsor an owner.'],
+    [new Date('2027-02-01T12:00:00'), 'Procurement kickoff: business, family, hosted events and sponsors all start.'],
+    [new Date('2027-03-01T12:00:00'), 'Sponsors confirmed in time for the ticket site.'],
+    [new Date('2027-03-08T12:00:00'), 'Family donations and hosted parties kick off at school.'],
+    [addDays(E,-60), 'Raffle license due if raffle proceeds may top $5,000.'],
+    [new Date('2027-04-01T12:00:00'), 'Ticket sales launch.'],
+    [addDays(E,-35), 'Last call: remind every asker to lock in donations.'],
+    [addDays(E,-21), 'Procurement closes. Cataloger starts entering items.'],
+    [addDays(E,-10), 'Print certificates and build gift card envelopes.'],
+    [addDays(E,0), 'Auction night.'],
+  ].sort((a,b)=>a[0]-b[0]);
+}
+const daysTo = d => Math.ceil((d - new Date()) / 864e5);
+
+// ---------- render
+function renderTabs(){
+  $('#tabs').innerHTML = STREAMS.map(s => {
+    const n = s.key==='overview' ? '' : `<span class="n">${rows.filter(r=>r.s===s.key && rowStatus(r)!=='Skip').length}</span>`;
+    return `<a href="#${s.key}" ${ui.route===s.key?'aria-current="page"':''}>${esc(s.label)}${n}</a>`;
+  }).join('');
+}
+
+function renderHeader(){
+  const team = settings.team || [];
+  $('#me').innerHTML = `<option value="">Pick your name</option>` + team.map(n=>`<option ${n===me?'selected':''}>${esc(n)}</option>`).join('');
+  $('#eventDate').innerHTML = DATES.map(d=>`<option value="${d}" ${d===settings.eventDate?'selected':''}>${fmt(new Date(d+'T12:00:00'))}, 2027</option>`).join('');
+}
+
+function overview(){
+  const live = rows.filter(r => rowStatus(r)!=='Skip');
+  const secured = live.filter(r => SECURED.has(rowStatus(r)));
+  const value = secured.reduce((a,r)=>a+(+r.value||0),0);
+  const claimed = live.filter(r => r.asker).length;
+  const dl = deadlines();
+  const close = dl.find(d => /Procurement closes/.test(d[1]));
+  const next = dl.find(d => daysTo(d[0]) >= 0);
+  const pct = (a,b) => Math.min(100, b ? a/b*100 : 0).toFixed(1);
+  const per = STREAMS.filter(s=>s.key!=='overview').map(s => {
+    const rs = live.filter(r=>r.s===s.key);
+    const c = st => rs.filter(r=>rowStatus(r)===st).length;
+    return {s, n:rs.length, claimed:rs.filter(r=>r.asker).length, asked:c('Asked')+c('Follow up'),
+      secured:rs.filter(r=>SECURED.has(rowStatus(r))).length, value:rs.filter(r=>SECURED.has(rowStatus(r))).reduce((a,r)=>a+(+r.value||0),0),
+      past:rs.filter(r=>r.tier==='A').length};
+  });
+  const mine = me ? live.filter(r=>r.asker===me) : [];
+  const mineOpen = mine.filter(r => !SECURED.has(rowStatus(r)) && rowStatus(r)!=='Declined').length;
+  const h = history ? `2025: ${history.pkgs2025} packages, ${money(history.value2025)} donated.` : '';
+  return `
+  <h2>2027 at a glance</h2>
+  <div class="grid score">
+    <div class="tile"><div class="k">Donations secured</div><div class="v">${secured.length} <small>of ${settings.goalCount}</small></div><div class="meter"><i style="width:${pct(secured.length,settings.goalCount)}%"></i></div></div>
+    <div class="tile"><div class="k">Value secured</div><div class="v">${money(value)}</div><div class="meter"><i style="width:${pct(value,settings.goalDollars)}%"></i></div><div class="foot">Goal ${money(settings.goalDollars)}. ${esc(h)}</div></div>
+    <div class="tile"><div class="k">Claimed by an asker</div><div class="v">${claimed} <small>of ${live.length}</small></div><div class="meter"><i style="width:${pct(claimed,live.length)}%"></i></div><div class="foot">${me ? `You have ${mine.length}, ${mineOpen} still open` : 'Pick your name to see your list'}</div></div>
+    <div class="tile"><div class="k">Procurement closes</div><div class="v">${fmt(close[0])}</div><div class="foot">${daysTo(close[0])} days away. Next: ${esc(next ? next[1].split('.')[0] : 'Auction night')}</div></div>
+  </div>
+  <div class="grid two">
+    <section class="card"><h3>By stream</h3><div class="tablewrap"><table>
+      <thead><tr><th>Stream</th><th class="num">On list</th><th class="num hide-sm">Gave recently</th><th class="num">Claimed</th><th class="num">Asked</th><th class="num">Secured</th><th class="num">Value</th></tr></thead>
+      <tbody>${per.map(p=>`<tr class="click" data-go="${p.s.key}"><td>${esc(p.s.label)}</td><td class="num">${p.n}</td><td class="num hide-sm">${p.past}</td><td class="num">${p.claimed}</td><td class="num">${p.asked}</td><td class="num">${p.secured}</td><td class="num">${money(p.value)}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="legend"><span><span class="pill t-A">Gave recently</span> 2025 or 2026</span><span><span class="pill t-B">Gave before</span> 2024 or earlier</span><span><span class="pill t-C">Asked, no gift</span></span><span><span class="pill t-D">Never asked</span></span><span><span class="pill t-N">New lead</span></span></div>
+    </section>
+    <section class="card"><h3>Countdown</h3><ul class="dl">${dl.map(d=>{const n=daysTo(d[0]);return `<li class="${n<0?'past':(d===next?'next':'')}"><span class="d">${fmt(d[0])}</span><span>${esc(d[1])}</span><span class="in">${n<0?'done':n===0?'today':n+'d'}</span></li>`;}).join('')}</ul></section>
+  </div>
+  <section class="card" style="margin-top:16px"><h3>Team and goals</h3>
+    <div class="settings">
+      <div class="field"><label for="setTeam">Askers (comma separated)</label><input type="text" id="setTeam" value="${esc((settings.team||[]).join(', '))}"></div>
+      <div class="field"><label for="setCount">Donation goal</label><input type="number" id="setCount" min="0" value="${settings.goalCount}"></div>
+      <div class="field"><label for="setDollars">Value goal ($)</label><input type="number" id="setDollars" min="0" step="1000" value="${settings.goalDollars}"></div>
+    </div>
+  </section>`;
+}
+
+function streamPage(){
+  const s = STREAMS.find(x=>x.key===ui.route);
+  let rs = rows.filter(r=>r.s===s.key);
+  const all = rs;
+  const q = ui.q.trim().toLowerCase();
+  if (q) rs = rs.filter(r => [r.n,r.t,r.e,r.host,r.note,r.notes,r.item,r.h26,r.h25,r.h24].some(v => v && String(v).toLowerCase().includes(q)));
+  if (ui.tier) rs = rs.filter(r => r.tier===ui.tier);
+  if (ui.status) rs = rs.filter(r => rowStatus(r)===ui.status);
+  else rs = rs.filter(r => rowStatus(r)!=='Skip');
+  if (ui.owner==='__me') rs = rs.filter(r => me && r.asker===me);
+  else if (ui.owner==='__none') rs = rs.filter(r => !r.asker);
+  else if (ui.owner) rs = rs.filter(r => r.asker===ui.owner);
+  const order = {A:0,N:1,B:2,C:3,D:4};
+  rs.sort((a,b)=> (order[a.tier]??5)-(order[b.tier]??5) || String(a.n).localeCompare(String(b.n)));
+  const counts = {}; all.forEach(r=>{const k=rowStatus(r); counts[k]=(counts[k]||0)+1;});
+  const tiersHere = Object.keys(TIERS).filter(t => all.some(r=>r.tier===t));
+  const shown = rs.slice(0, ui.limit);
+  const isHosted = s.key==='hosted';
+  const head = isHosted
+    ? `<th>Event</th><th class="hide-sm">Hosts</th><th>History</th><th>Asker</th><th>Status</th><th class="num">Value</th>`
+    : `<th>Name</th><th class="hide-sm">Type</th><th>History</th><th>Asker</th><th>Status</th><th class="num">Value</th>`;
+  const body = shown.map(r => {
+    const hist = [r.h26 && `<span><b>26</b> ${esc(r.h26)}</span>`, r.h25 && `<span><b>25</b> ${esc(r.h25)}</span>`, r.h24 && `<span><b>24</b> ${esc(r.h24)}</span>`, r.h23 && `<span><b>23</b> ${esc(r.h23)}</span>`].filter(Boolean).slice(0,2).join('<br>') || `<span class="dim">${esc(r.o26 && r.o26!=='Not asked' ? r.o26 + ' in 2026' : 'No history')}</span>`;
+    const asker = r.asker ? `<span>${esc(r.asker)}</span>` : `<button class="claim" data-claim="${esc(r.id)}">Claim</button>`;
+    return `<tr class="click" data-open="${esc(r.id)}">
+      <td><div class="stack"><span class="nm">${esc(r.n)}</span><span><span class="pill t-${esc(r.tier||'D')}">${esc(TIERS[r.tier]||'')}</span></span></div></td>
+      <td class="hide-sm dim">${esc(isHosted ? (r.host||'') : (r.t||''))}</td>
+      <td class="dim" style="max-width:260px">${hist}</td>
+      <td>${asker}</td>
+      <td><span class="pill ${statusCls(rowStatus(r))}">${esc(rowStatus(r))}</span></td>
+      <td class="num">${r.value ? money(r.value) : ''}</td></tr>`;
+  }).join('');
+  return `
+  <h2>${esc(s.label)}</h2>
+  <p class="sub">${esc(s.blurb)}</p>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search names, notes, past gifts" value="${esc(ui.q)}" aria-label="Search">
+    <select id="fOwner" aria-label="Asker filter">
+      <option value="">Everyone</option><option value="__me" ${ui.owner==='__me'?'selected':''}>My list</option><option value="__none" ${ui.owner==='__none'?'selected':''}>Unclaimed</option>
+      ${(settings.team||[]).map(n=>`<option ${ui.owner===n?'selected':''}>${esc(n)}</option>`).join('')}
+    </select>
+    <select id="fStatus" aria-label="Status filter"><option value="">Any status</option>${STATUSES.map(x=>`<option ${ui.status===x?'selected':''}>${x}</option>`).join('')}</select>
+    <button class="primary" id="addBtn">Add ${esc(s.one)}</button>
+  </div>
+  ${tiersHere.length>1 ? `<div class="chips" role="group" aria-label="History filter"><button class="chip" data-tier="" aria-pressed="${!ui.tier}">All</button>${tiersHere.map(t=>`<button class="chip" data-tier="${t}" aria-pressed="${ui.tier===t}">${TIERS[t]} · ${all.filter(r=>r.tier===t).length}</button>`).join('')}</div>` : ''}
+  <div class="counts">${STATUSES.filter(x=>counts[x]).map(x=>`<span>${x} <b>${counts[x]}</b></span>`).join('')}<span>Showing <b>${shown.length}</b> of ${rs.length}</span></div>
+  ${rs.length ? `<div class="card" style="padding:4px 8px"><div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
+  ${rs.length>ui.limit?`<div class="more"><button id="moreBtn">Show ${Math.min(100, rs.length-ui.limit)} more</button></div>`:''}</div>`
+  : `<div class="card empty">${all.length ? 'Nothing matches these filters.' : 'Nothing here yet.'}</div>`}`;
+}
+
+function drawer(){
+  if (!ui.open) { $('#drawerHost').replaceChildren(); return; }
+  const r = ui.open === '__new' ? null : rows.find(x=>x.id===ui.open);
+  if (ui.open !== '__new' && !r) { ui.open = null; $('#drawerHost').replaceChildren(); return; }
+  const s = STREAMS.find(x=>x.key===(r ? r.s : ui.route));
+  const isNew = !r;
+  const v = r || {s:s.key, n:'', tier:'N'};
+  const copyRow = (label, val) => val ? `<div class="field"><label>${label}</label><div class="copy"><span>${esc(val)}</span><button class="ghost" data-copy="${esc(val)}" aria-label="Copy ${label}">Copy</button></div></div>` : '';
+  const histRows = [['2026',v.h26 || (v.o26 && v.o26!=='Not asked' && v.o26!=='New lead' ? v.o26 : '')],['2025',v.h25],['2024',v.h24],['2023',v.h23]].filter(x=>x[1]);
+  $('#drawerHost').innerHTML = `<div class="scrim" data-close="1"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <header><h3 id="dTitle">${isNew ? 'Add ' + esc(s.one) : esc(v.n)}</h3><button class="ghost" data-close="1" aria-label="Close">Close</button></header>
+    <div class="body">
+      ${isNew ? `<div class="field"><label for="nName">${s.key==='hosted'?'Event':'Name'}</label><input type="text" id="nName"></div>
+        <div class="row2"><div class="field"><label for="nType">${s.key==='hosted'?'Hosts':s.key==='art'?'Grade and teacher':'Type'}</label><input type="text" id="nType"></div>
+        <div class="field"><label for="nEmail">Email or contact</label><input type="text" id="nEmail"></div></div>
+        <div class="field"><label for="nWeb">Website or donation form</label><input type="text" id="nWeb"></div>`
+      : `<div><span class="pill t-${esc(v.tier||'D')}">${esc(TIERS[v.tier]||'')}</span> <span class="dim">${esc(v.t||'')}${v.hood?' · '+esc(v.hood):''}</span></div>
+        ${v.host?`<div class="field"><label>Hosts</label><div>${esc(v.host)}</div></div>`:''}
+        ${copyRow('Email', v.e)}${copyRow('Phone', v.p)}${copyRow('Website or form', v.w)}${v.how?`<div class="field"><label>How to ask</label><div>${esc(v.how)}</div></div>`:''}
+        ${v.desc?`<div class="field"><label>Description</label><div class="dim">${esc(v.desc)}</div></div>`:''}
+        ${histRows.length?`<div class="field"><label>History</label><dl class="hist">${histRows.map(h=>`<dt>${h[0]}</dt><dd>${esc(h[1])}</dd>`).join('')}</dl>${v.a26?`<div class="dim" style="margin-top:4px">Asked in 2026 by ${esc(v.a26)}</div>`:''}</div>`:''}
+        ${v.note?`<div class="field"><label>Carried over</label><div class="dim">${esc(v.note)}</div></div>`:''}`}
+      <div class="row2">
+        <div class="field"><label for="dAsker">Asker</label><select id="dAsker"><option value="">Unclaimed</option>${(settings.team||[]).map(n=>`<option ${v.asker===n?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+        <div class="field"><label for="dStatus">Status</label><select id="dStatus">${STATUSES.map(x=>`<option ${rowStatus(v)===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="dItem">2027 item</label><input type="text" id="dItem" value="${esc(v.item||'')}" placeholder="e.g. $100 gift card"></div>
+        <div class="field"><label for="dValue">Value ($)</label><input type="number" id="dValue" min="0" value="${esc(v.value||'')}"></div>
+      </div>
+      <div class="field"><label for="dNotes">Notes</label><textarea id="dNotes" placeholder="Who you talked to, when to follow up">${esc(v.notes||'')}</textarea></div>
+      ${!isNew && v.at ? `<div class="dim">Updated ${new Date(v.at).toLocaleDateString('en-US',{month:'short',day:'numeric'})} by ${esc(v.by||'someone')}</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" id="dSave">${isNew?'Add to list':'Save'}</button><button data-close="1">Cancel</button></div>
+    </div>
+  </aside>`;
+  const first = $('#drawerHost input, #drawerHost select'); if (first && isNew) first.focus();
+}
+
+function render(){
+  if (!ready) return;
+  renderHeader(); renderTabs();
+  const keepFocus = document.activeElement && document.activeElement.id;
+  const sel = document.activeElement && document.activeElement.selectionStart;
+  $('#main').innerHTML = ui.route==='overview' ? overview() : streamPage();
+  if (keepFocus==='q'){ const q=$('#q'); q.focus(); try{q.setSelectionRange(sel,sel);}catch(e){} }
+  if (!$('#drawerHost .drawer') || ui.drawerDirty) { drawer(); ui.drawerDirty=false; }
+}
+
+// ---------- events
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-claim],[data-open],[data-close],[data-go],[data-tier],[data-copy],#addBtn,#moreBtn,#dSave');
+  if (!t) return;
+  if (t.dataset.claim){ e.stopPropagation(); claim(t.dataset.claim); return; }
+  if (t.dataset.copy!==undefined){ const val=t.dataset.copy; navigator.clipboard?.writeText(val).then(()=>toast('Copied'),()=>toast('Select the text to copy')); return; }
+  if (t.dataset.close){ ui.open=null; ui.drawerDirty=true; render(); return; }
+  if (t.dataset.go){ location.hash = t.dataset.go; return; }
+  if (t.dataset.tier!==undefined){ ui.tier=t.dataset.tier; ui.limit=100; render(); return; }
+  if (t.dataset.open){ ui.open=t.dataset.open; ui.drawerDirty=true; render(); return; }
+  if (t.id==='addBtn'){ ui.open='__new'; ui.drawerDirty=true; render(); return; }
+  if (t.id==='moreBtn'){ ui.limit+=100; render(); return; }
+  if (t.id==='dSave'){
+    const patch = {asker:$('#dAsker').value, status:$('#dStatus').value, item:$('#dItem').value.trim(), value:$('#dValue').value ? Number($('#dValue').value) : '', notes:$('#dNotes').value.trim()};
+    if (ui.open==='__new'){
+      const name = $('#nName').value.trim(); if (!name){ toast('Add a name first'); $('#nName').focus(); return; }
+      const s = ui.route==='overview' ? 'biz' : ui.route;
+      const extra = {n:name, e:$('#nEmail').value.trim(), w:$('#nWeb').value.trim()};
+      const typ = $('#nType').value.trim(); if (s==='hosted') extra.host = typ; else extra.t = typ;
+      add(s, {...extra, ...patch}); toast('Added');
+    } else { save(ui.open, patch); toast('Saved'); }
+    ui.open=null; ui.drawerDirty=true; render();
+  }
+});
+document.addEventListener('keydown', e => { if (e.key==='Escape' && ui.open){ ui.open=null; ui.drawerDirty=true; render(); } });
+document.addEventListener('input', e => {
+  if (e.target.id==='q'){ ui.q=e.target.value; ui.limit=100; clearTimeout(ui.qt); ui.qt=setTimeout(render,180); }
+});
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id==='me'){ me=e.target.value; try{localStorage.setItem('blaine27.me',me);}catch(x){} render(); }
+  else if (id==='eventDate'){ saveSettings({eventDate:e.target.value}); }
+  else if (id==='fOwner'){ ui.owner=e.target.value; ui.limit=100; render(); }
+  else if (id==='fStatus'){ ui.status=e.target.value; ui.limit=100; render(); }
+  else if (id==='setTeam'){ const team=e.target.value.split(',').map(x=>x.trim()).filter(Boolean); if(team.length) saveSettings({team}); }
+  else if (id==='setCount'){ saveSettings({goalCount:Math.max(0,+e.target.value||0)}); }
+  else if (id==='setDollars'){ saveSettings({goalDollars:Math.max(0,+e.target.value||0)}); }
+});
+function route(){
+  const h = (location.hash||'').slice(1);
+  ui.route = STREAMS.some(s=>s.key===h) ? h : 'overview';
+  ui.q=''; ui.tier=''; ui.status=''; ui.limit=100; ui.open=null; ui.drawerDirty=true;
+  render(); window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', route);
+
+// ---------- load
+async function load(){
+  // Skip a background refresh while someone is mid-edit, so their typing isn't replaced.
+  if (ready && (pending || ui.open || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)))) return;
+  try {
+    const tabs = await api.read([...STREAM_TABS, SETTINGS_TAB]);
+    rows = STREAMS.filter(s=>s.tab).flatMap(s => (tabs[s.tab]||[]).map(o => toRow(o, s.key)));
+    applySettings(tabs[SETTINGS_TAB] || []);
+    if (!ready){ ready = true; route(); } else render();
+  } catch(e){
+    if (!ready) $('#boot').textContent = 'The list did not load. Reload the page to try again.';
+  }
+}
+load();
+api.poll(load, 60000);
+</script>
+</body>
+</html>

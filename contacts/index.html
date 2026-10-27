@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blaine Auction Contacts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/lib/gate.css">
+<style>
+/* Layout: one column. Search and filter bar, then a grid of contact cards. Tap a card's Edit to change it. Shares Auction HQ's palette. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --sunk: #eceff4; --ink: #17233a; --muted: #5a667c; --line: #d9dfe8;
+  --accent: #1f4fbf; --accent-ink: #ffffff; --danger: #b0261d;
+  --c27: #1d7a4a; --c27-bg: #e3f3ea; --c26: #2a59a3; --c26-bg: #e4ecf8; --cp: #5a667c; --cp-bg: #eceff4;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1520; --surface: #172131; --sunk: #222c3c; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
+    --accent: #7ea2ff; --accent-ink: #0f1520; --danger: #ff958b;
+    --c27: #7fd6a4; --c27-bg: #173328; --c26: #93b8f6; --c26-bg: #18263d; --cp: #9aa6ba; --cp-bg: #222c3c;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 980px; margin: 0 auto; display: grid; gap: 18px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 22px 48px;
+}
+header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; justify-content: space-between; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.eyebrow a { color: var(--accent); text-decoration: none; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 5.5vw, 36px); line-height: 1.05; margin: 4px 0 0; }
+.bar { display: grid; gap: 10px; }
+.bar-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+input[type="search"], .field input, .field select, .field textarea {
+  width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+#q { flex: 1 1 240px; width: auto; min-width: 0; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { min-height: 30px; padding: 3px 10px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters button { min-height: 32px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.meta { font-size: 13px; color: var(--muted); min-height: 1.4em; }
+.grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.top { display: flex; gap: 8px; justify-content: space-between; align-items: start; }
+.name { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+.role { color: var(--muted); font-size: 13.5px; }
+.chip { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.s2027 { color: var(--c27); background: var(--c27-bg); }
+.chip.s2026 { color: var(--c26); background: var(--c26-bg); }
+.chip.spartner { color: var(--cp); background: var(--cp-bg); }
+.line { display: flex; gap: 8px; align-items: center; min-width: 0; font-size: 14px; }
+.line .v { flex: 1; min-width: 0; overflow-wrap: anywhere; user-select: all; font-variant-numeric: tabular-nums; }
+.line .k { color: var(--muted); font-size: 12px; width: 40px; flex: none; }
+.copy { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: transparent; cursor: pointer; flex: none; }
+.note { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
+.foot { display: flex; justify-content: flex-end; }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 20px; color: var(--muted); }
+.warn { color: var(--danger); font-size: 13px; }
+dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--surface); color: var(--ink); width: min(520px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(10, 14, 20, .55); }
+.dlg { display: grid; gap: 12px; padding: 18px; }
+.dlg h2 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 0; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.two { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.dlg-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.dlg-foot .r { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow"><a href="/">Auction HQ</a> · 2027 Auction</div>
+      <h1>Contacts</h1>
+    </div>
+    <button type="button" class="btn primary" id="addBtn" hidden>Add contact</button>
+  </header>
+
+  <div class="bar">
+    <div class="bar-row">
+      <label for="q" hidden>Search</label>
+      <input type="search" id="q" placeholder="Search name, role, email" autocomplete="off">
+      <button type="button" class="btn" id="copyAll">Copy emails</button>
+    </div>
+    <div class="filters" id="filters" role="group" aria-label="Filter"></div>
+    <div class="meta" id="meta" role="status" aria-live="polite">Loading…</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="dlg" id="form">
+    <h2 id="dlgTitle">Edit contact</h2>
+    <div class="field"><label for="f-name">Name</label><input id="f-name" required></div>
+    <div class="field"><label for="f-role">Role</label><input id="f-role"></div>
+    <div class="two">
+      <div class="field"><label for="f-email">Email</label><input id="f-email" type="email"></div>
+      <div class="field"><label for="f-phone">Phone</label><input id="f-phone" type="tel"></div>
+    </div>
+    <div class="two">
+      <div class="field"><label for="f-status">Status</label>
+        <select id="f-status"><option value="2027">Confirmed 2027</option><option value="2026">2026 team</option><option value="partner">PTA / advisor</option></select></div>
+      <div class="field"><label for="f-team">Side</label>
+        <select id="f-team"><option>Leadership</option><option>Procurement</option><option>Event</option><option>Advisors</option></select></div>
+    </div>
+    <div class="field"><label for="f-notes">Notes</label><textarea id="f-notes" rows="2"></textarea></div>
+    <p class="warn" id="formErr" hidden></p>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" id="delBtn">Delete</button>
+      <div class="r"><button type="button" class="btn" id="cancelBtn">Cancel</button><button type="submit" class="btn primary" id="saveBtn">Save</button></div>
+    </div>
+  </form>
+</dialog>
+
+<script type="module">
+import { read, upsert, remove, poll } from '/lib/api.js';
+
+const TAB = 'Contacts';
+const $ = id => document.getElementById(id);
+const STATUS = { "2027": "Confirmed 2027", "2026": "2026 team", partner: "PTA / advisor" };
+const FILTERS = [["all", "All"], ["2027", "Confirmed 2027"], ["2026", "2026 team"], ["partner", "PTA / advisor"], ["Procurement", "Procurement"], ["Event", "Event"]];
+let contacts = [], filter = "all", ready = false, editingId = null, armed = false, busy = false;
+
+function matches(c) {
+  if (filter === "all") return true;
+  if (STATUS[filter]) return c.status === filter;
+  return c.team === filter;
+}
+function visible() {
+  const q = $("q").value.trim().toLowerCase();
+  return contacts.filter(c => matches(c) && (!q || [c.name, c.role, c.email, c.phone, c.notes, c.team].join(" ").toLowerCase().includes(q)));
+}
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function copyBtn(value, label) {
+  const b = el("button", "copy", "Copy"); b.type = "button"; b.setAttribute("aria-label", "Copy " + label);
+  b.addEventListener("click", () => copy(value, b));
+  return b;
+}
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = "Copied"; setTimeout(() => { btn.textContent = t; }, 1200); }
+  catch (e) { $("meta").textContent = "Copy didn't work here. Select the text instead."; }
+}
+
+function renderFilters() {
+  const f = $("filters"); f.textContent = "";
+  FILTERS.forEach(([k, l]) => {
+    const n = k === "all" ? contacts.length : contacts.filter(c => (STATUS[k] ? c.status === k : c.team === k)).length;
+    const b = el("button", null, l + " " + n); b.type = "button"; b.setAttribute("aria-pressed", String(filter === k));
+    b.addEventListener("click", () => { filter = k; renderFilters(); render(); });
+    f.append(b);
+  });
+}
+function render() {
+  const g = $("grid"); g.textContent = "";
+  const list = visible();
+  $("meta").textContent = contacts.length ? list.length + " of " + contacts.length + " shown" : "";
+  if (!contacts.length) { g.append(el("div", "empty", "No contacts yet.")); return; }
+  if (!list.length) { g.append(el("div", "empty", "No one matches.")); return; }
+  list.forEach(c => {
+    const card = el("article", "card");
+    const top = el("div", "top");
+    const who = el("div"); who.append(el("div", "name", c.name || "Unnamed"), el("div", "role", c.role || ""));
+    top.append(who, el("span", "chip s" + c.status, STATUS[c.status] || c.status));
+    card.append(top);
+    if (c.email) { const l = el("div", "line"); l.append(el("span", "k", "Email"), el("span", "v", c.email), copyBtn(c.email, "email for " + c.name)); card.append(l); }
+    if (c.phone) { const l = el("div", "line"); l.append(el("span", "k", "Phone"), el("span", "v", c.phone), copyBtn(String(c.phone), "phone for " + c.name)); card.append(l); }
+    if (c.notes) card.append(el("div", "note", c.notes));
+    const foot = el("div", "foot"); const b = el("button", "btn small", "Edit"); b.type = "button";
+    b.setAttribute("aria-label", "Edit " + c.name); b.addEventListener("click", () => openDlg(c)); foot.append(b); card.append(foot);
+    g.append(card);
+  });
+}
+
+function openDlg(c) {
+  editingId = c ? c.id : null; armed = false;
+  $("dlgTitle").textContent = c ? "Edit contact" : "Add contact";
+  $("f-name").value = c ? c.name || "" : "";
+  $("f-role").value = c ? c.role || "" : "";
+  $("f-email").value = c ? c.email || "" : "";
+  $("f-phone").value = c ? c.phone || "" : "";
+  $("f-status").value = c ? String(c.status || "2026") : "2027";
+  $("f-team").value = c ? c.team || "Procurement" : "Procurement";
+  $("f-notes").value = c ? c.notes || "" : "";
+  $("delBtn").hidden = !c; $("delBtn").textContent = "Delete";
+  $("formErr").hidden = true;
+  $("dlg").showModal(); $("f-name").focus();
+}
+function fail() { $("formErr").hidden = false; $("formErr").textContent = "Couldn't save. Try again in a moment."; }
+function setBusy(on) { busy = on; $("saveBtn").disabled = on; $("delBtn").disabled = on; $("saveBtn").textContent = on ? "Saving…" : "Save"; }
+
+$("cancelBtn").addEventListener("click", () => $("dlg").close());
+$("addBtn").addEventListener("click", () => openDlg(null));
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (busy) return;
+  const row = {
+    id: editingId || "c-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: $("f-name").value.trim(), role: $("f-role").value.trim(), email: $("f-email").value.trim(),
+    phone: $("f-phone").value.trim(), status: $("f-status").value, team: $("f-team").value,
+    notes: $("f-notes").value.trim(), updatedAt: new Date().toISOString()
+  };
+  if (!row.name) return;
+  setBusy(true);
+  try {
+    await upsert(TAB, row);
+    const i = contacts.findIndex(c => c.id === row.id);
+    if (i > -1) contacts[i] = row; else contacts.push(row);
+    sortAll(); renderFilters(); render(); $("dlg").close();
+  } catch (err) { fail(); }
+  setBusy(false);
+});
+$("delBtn").addEventListener("click", async () => {
+  if (!editingId || busy) return;
+  if (!armed) { armed = true; $("delBtn").textContent = "Press again to delete"; return; }
+  setBusy(true);
+  try {
+    await remove(TAB, editingId);
+    contacts = contacts.filter(c => c.id !== editingId);
+    renderFilters(); render(); $("dlg").close();
+  } catch (err) { fail(); }
+  setBusy(false);
+});
+$("q").addEventListener("input", render);
+$("copyAll").addEventListener("click", () => {
+  const emails = [...new Set(visible().map(c => c.email).filter(Boolean))];
+  if (emails.length) copy(emails.join(", "), $("copyAll"));
+});
+
+function sortAll() {
+  const order = { "2027": 0, "2026": 1, partner: 2 };
+  contacts.forEach(c => { c.status = String(c.status); });
+  contacts.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3) || String(a.name).localeCompare(String(b.name)));
+}
+async function load() {
+  if (busy || $("dlg").open) return;
+  try {
+    const tabs = await read([TAB]);
+    contacts = tabs[TAB]; sortAll();
+    if (!ready) { ready = true; $("addBtn").hidden = false; }
+    renderFilters(); render();
+  } catch (e) {
+    if (!ready) $("meta").textContent = "Contacts couldn't load. Reload the page.";
+  }
+}
+load();
+poll(load);
+</script>
+</body>
+</html>
