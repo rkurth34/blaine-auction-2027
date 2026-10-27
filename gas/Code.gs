@@ -1,3 +1,4 @@
+/** @OnlyCurrentDoc */
 /**
  * Blaine 2027 Auction Data: Apps Script backend.
  * Bound to the "Blaine 2027 Auction Data" sheet. The sheet is the source of truth;
@@ -12,7 +13,7 @@
  *   patch     { tab, id, data }                -> { row }        merge fields into one row
  *   remove    { tab, id }                      -> { ok }
  *   claim     { tab, id, asker, by }           -> { row } or { taken: name }
- *   setting   { key, value }                   -> { ok }         Tracker settings tab
+ *   setting   { name, value }                  -> { ok }         Tracker settings tab
  *   saveOrg   { chart, rev }                   -> { rev }        Org chart JSON + readable tabs
  *   readOrg   {}                               -> { chart, rev }
  */
@@ -49,7 +50,7 @@ function handle(b) {
     case 'patch': return locked(function () { return { row: patch(b.tab, b.id, b.data) }; });
     case 'remove': return locked(function () { return { ok: remove(b.tab, b.id) }; });
     case 'claim': return locked(function () { return claim(b.tab, b.id, b.asker, b.by); });
-    case 'setting': return locked(function () { setSetting(b.key, b.value); return { ok: true }; });
+    case 'setting': return locked(function () { setSetting(b.name, b.value); return { ok: true }; });
     case 'readOrg': return readOrg();
     case 'saveOrg': return locked(function () { return saveOrg(b.chart); });
     default: return { error: 'unknown action' };
@@ -161,6 +162,7 @@ function claim(name, id, asker, by) {
 }
 
 function setSetting(key, value) {
+  if (!key) throw new Error('missing setting name');
   var t = table('Tracker settings');
   for (var i = 0; i < t.rows.length; i++) {
     if (String(t.rows[i][0]) === String(key)) {
