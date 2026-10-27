@@ -678,7 +678,7 @@ function confirmTwice(btn, key, label) {
   return false;
 }
 function focusLater(sel, selectAll) {
-  requestAnimationFrame(() => { const el = document.querySelector(sel); if (el) { el.focus(); if (selectAll && el.select) el.select(); } });
+  setTimeout(() => { const el = document.querySelector(sel); if (el) { el.focus(); if (selectAll && el.select) el.select(); } }, 0);
 }
 function toggleRole(id) {
   if (arranging) return;
