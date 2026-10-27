@@ -261,6 +261,18 @@ ol.steps .fx.ttl { font-weight: 700; }
 .x { width: auto; min-width: 26px; }
 .seat .fx:not(:focus)::placeholder { opacity: 0; }
 .seat:hover .fx::placeholder { opacity: .6; }
+.seat { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.editing .seat { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
+.cl-slot { display: inline-flex; }
+.cl { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--ask); }
+.cl:hover { background: var(--ask-soft); }
+.cl svg { width: 15px; height: 15px; }
+.pcell { display: flex; align-items: center; gap: 4px; }
+.pick { position: absolute; z-index: 60; list-style: none; margin: 0; padding: 4px; max-width: 340px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px var(--shadow); }
+.pick li { padding: 6px 10px; border-radius: 6px; cursor: pointer; display: grid; }
+.pick li span { font-size: .82em; color: var(--muted); }
+.pick li:hover, .pick li.on { background: var(--sunk); }
+.pick li.add { color: var(--accent-ink); font-weight: 700; border-top: 1px solid var(--line); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -344,7 +356,7 @@ const GRIP = '<svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"
 const CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const WORD = { set: 'Confirmed', ask: 'Ask to return', open: 'Open', partner: 'Partner' };
 const STATUSES = ['set', 'ask', 'open', 'partner'];
-import { readOrg, saveOrg, poll } from '/lib/api.js';
+import { readOrg, saveOrg, read, upsert, poll } from '/lib/api.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -403,6 +415,92 @@ function bound(el) {
   return o ? { o, k } : null;
 }
 
+/* ---------- contacts ---------- */
+let contacts = [];
+const low = v => String(v == null ? '' : v).trim().toLowerCase();
+function contactFor(s) {
+  if (!contacts.length || !s) return null;
+  if (s.cid) { const c = contacts.find(x => x.id === s.cid); if (c) return c; }
+  const e = low(s.e);
+  if (e) { const c = contacts.find(x => low(x.email) === e); if (c) return c; }
+  const n = low(s.n);
+  if (n && n !== 'open seat') { const m = contacts.filter(x => low(x.name) === n); if (m.length === 1) return m[0]; }
+  return null;
+}
+function linkHTML(s) {
+  const c = contactFor(s); if (!c) return '';
+  return `<a class="cl" href="/contacts/#${encodeURIComponent(c.id)}" title="Open ${esc(c.name)} in Contacts" aria-label="Open ${esc(c.name)} in Contacts"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 13.5c.8-2.4 2.7-3.6 5-3.6s4.2 1.2 5 3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>`;
+}
+async function loadContacts() {
+  try { const t = await read(['Contacts']); contacts = (t.Contacts || []).filter(c => c && c.id && c.name); } catch (e) { return; }
+  if (chart) document.querySelectorAll('[data-cl]').forEach(x => { const f = findSeat(x.dataset.cl); if (f) x.innerHTML = linkHTML(f.seat); });
+}
+function contactTeam(f) {
+  if (!f || f.role === chart.chairs) return 'Leadership';
+  const l = allLists().find(x => x.list.includes(f.role));
+  if (!l || !l.branch) return 'Advisors';
+  return /event/i.test(l.branch.name) ? 'Event' : 'Procurement';
+}
+const CSTATUS = { set: '2027', ask: '2026', open: '2027', partner: 'partner' };
+
+/* Picker under a seat's name field: matching contacts, plus a new contact from what was typed. */
+const pick = document.createElement('ul');
+pick.className = 'pick'; pick.id = 'pick'; pick.setAttribute('role', 'listbox'); pick.hidden = true;
+document.body.append(pick);
+let pickFor = null, pickItems = [], pickIdx = -1;
+function showPick(input) {
+  const f = findSeat(input.dataset.s); if (!f) return hidePick();
+  const q = low(input.value);
+  const list = (q && q !== 'open seat' ? contacts.filter(c => low(c.name).includes(q) || low(c.email).includes(q) || low(c.role).includes(q)) : contacts).slice(0, 7);
+  pickItems = list.map(c => ({ c }));
+  const typed = input.value.trim();
+  if (typed && typed.toLowerCase() !== 'open seat' && !contacts.some(c => low(c.name) === low(typed))) pickItems.push({ add: typed });
+  if (!pickItems.length) return hidePick();
+  pickFor = input; pickIdx = -1;
+  pick.innerHTML = pickItems.map((it, i) => it.c
+    ? `<li role="option" id="pk${i}" data-i="${i}"><strong>${esc(it.c.name)}</strong>${it.c.role ? `<span>${esc(it.c.role)}</span>` : ''}</li>`
+    : `<li role="option" id="pk${i}" data-i="${i}" class="add">+ New contact: ${esc(it.add)}</li>`).join('');
+  const r = input.getBoundingClientRect();
+  pick.style.left = (r.left + scrollX) + 'px'; pick.style.top = (r.bottom + scrollY + 2) + 'px'; pick.style.minWidth = Math.max(220, r.width) + 'px';
+  pick.hidden = false; input.setAttribute('aria-controls', 'pick'); input.setAttribute('aria-expanded', 'true');
+}
+function hidePick() { pick.hidden = true; if (pickFor) pickFor.setAttribute('aria-expanded', 'false'); pickFor = null; pickIdx = -1; }
+function movePick(d) {
+  pickIdx = (pickIdx + d + pickItems.length) % pickItems.length;
+  pick.querySelectorAll('li').forEach((li, i) => li.classList.toggle('on', i === pickIdx));
+  pickFor.setAttribute('aria-activedescendant', 'pk' + pickIdx);
+}
+async function choose(i) {
+  const it = pickItems[i], input = pickFor; if (!it || !input) return;
+  const f = findSeat(input.dataset.s); hidePick(); if (!f) return;
+  if (it.c) {
+    const c = it.c;
+    input.value = c.name;
+    edit(() => { f.seat.n = c.name; f.seat.cid = c.id; if (c.email) f.seat.e = String(c.email); if (f.seat.s === 'open') f.seat.s = 'ask'; });
+    say(`${c.name} added to ${f.role.name}.`);
+    return;
+  }
+  const row = { id: 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: it.add, role: f.role.name,
+    email: f.seat.e || '', phone: '', status: CSTATUS[f.seat.s === 'open' ? 'ask' : f.seat.s] || '2026', team: contactTeam(f), notes: '', updatedAt: new Date().toISOString() };
+  input.value = it.add;
+  edit(() => { f.seat.n = it.add; f.seat.cid = row.id; if (f.seat.s === 'open') f.seat.s = 'ask'; });
+  setSaveState('Saving…');
+  try { await upsert('Contacts', row); contacts.push(row); syncAll(); say(`${it.add} added to Contacts.`); }
+  catch (e) { setSaveState('New contact not saved. Try again.', true); }
+}
+document.addEventListener('input', e => { if (e.target.matches('input.nm[data-s]')) showPick(e.target); });
+document.addEventListener('focusin', e => { if (e.target.matches('input.nm[data-s]') && contacts.length && (!e.target.value.trim() || low(e.target.value) === 'open seat')) showPick(e.target); });
+document.addEventListener('focusout', e => { if (e.target === pickFor) setTimeout(() => { if (document.activeElement !== pickFor) hidePick(); }, 120); });
+pick.addEventListener('mousedown', e => { e.preventDefault(); const li = e.target.closest('li'); if (li) choose(+li.dataset.i); });
+document.addEventListener('keydown', e => {
+  if (pick.hidden || e.target !== pickFor) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); movePick(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); movePick(-1); }
+  else if (e.key === 'Enter' && pickIdx > -1) { e.preventDefault(); e.stopImmediatePropagation(); choose(pickIdx); }
+  else if (e.key === 'Escape') { e.stopImmediatePropagation(); hidePick(); }
+}, true);
+addEventListener('scroll', () => { if (pickFor) showPick(pickFor); }, { passive: true });
+
 /* ---------- rendering ---------- */
 const opts = v => STATUSES.map(k => `<option value="${k}"${k === v ? ' selected' : ''}>${WORD[k]}</option>`).join('');
 const tagsHTML = r => `${r.lots ? `<span class="lot">${esc(r.lots)}</span>` : ''}${r.flag ? `<span class="flag">${esc(r.flag)}</span>` : ''}`;
@@ -416,7 +514,8 @@ function seatHTML(s) {
   const a = `data-s="${s.id}"`;
   return `<li class="seat" data-seat="${s.id}" data-seatrow="${s.id}" data-status="${s.s}">
     ${arranging ? `<button type="button" class="grip" data-drag="seat" data-id="${s.id}" aria-label="Drag ${esc(s.n)} to another role">${GRIP}</button>` : ''}
-    <input class="fx nm" ${a} data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Name">
+    <input class="fx nm" ${a} data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Name" autocomplete="off">
+    <span class="cl-slot" data-cl="${s.id}">${linkHTML(s)}</span>
     <select class="fx st ${s.s}" ${a} data-k="s" aria-label="Status for ${esc(s.n)}">${opts(s.s)}</select>
     <button type="button" class="x" data-act="seat-del" data-id="${s.id}" aria-label="Remove ${esc(s.n || 'this seat')}">×</button>
     <input class="fx em" type="email" ${a} data-k="e" value="${esc(s.e)}" placeholder="Email" aria-label="Email for ${esc(s.n)}">
@@ -557,7 +656,7 @@ function renderTable() {
   $('tbody').innerHTML = tableRows().map(([r, side, s]) => `<tr data-seatrow="${s.id}" data-side="${esc(side)}" data-status="${s.s}" data-search="${esc(rowSearch(r, side, s))}">
     <td><input class="fx" data-r="${r.id}" data-k="name" value="${esc(r.name)}" aria-label="Role"></td>
     <td>${esc(side)}</td>
-    <td><input class="fx" data-s="${s.id}" data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Person"></td>
+    <td><div class="pcell"><input class="fx nm" data-s="${s.id}" data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Person" autocomplete="off"><span class="cl-slot" data-cl="${s.id}">${linkHTML(s)}</span></div></td>
     <td><select class="fx st ${s.s}" data-s="${s.id}" data-k="s" aria-label="Status">${opts(s.s)}</select></td>
     <td><input class="fx" type="email" data-s="${s.id}" data-k="e" value="${esc(s.e)}" placeholder="Email" aria-label="Email" style="font-family:var(--mono);font-size:.82em"></td>
     <td><input class="fx" data-r="${r.id}" data-k="y25" value="${esc(r.y25)}" aria-label="In 2025"></td></tr>`).join('');
@@ -585,6 +684,7 @@ function syncAll() {
     const c = li.querySelector(':scope > .card > .card-head > .chips'); if (c) c.innerHTML = chipsHTML(f.role);
     const nm = li.querySelector('.rname'); if (nm) nm.textContent = f.role.name;
   });
+  document.querySelectorAll('[data-cl]').forEach(x => { const f = findSeat(x.dataset.cl); if (f) x.innerHTML = linkHTML(f.seat); });
   renderStats(); applyFilter(true);
 }
 
@@ -657,7 +757,7 @@ document.addEventListener('change', e => {
   if (b.k === 'stepsName' && !v) v = 'Timeline';
   if (el.value !== v) el.value = v;
   if (v === (b.o[b.k] == null ? '' : String(b.o[b.k]))) return;
-  edit(() => { b.o[b.k] = v; });
+  edit(() => { b.o[b.k] = v; if (b.k === 'n' && b.o.cid) { const c = contacts.find(x => x.id === b.o.cid); if (!c || low(c.name) !== low(v)) delete b.o.cid; } });
 });
 document.addEventListener('keydown', e => {
   const el = e.target;
@@ -911,7 +1011,8 @@ async function refresh() {
   }
   render();
   setView(savedView === 'list');
-  poll(refresh);
+  loadContacts();
+  poll(() => { refresh(); loadContacts(); });
 })();
 </script>
 </body>

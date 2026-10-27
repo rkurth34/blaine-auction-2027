@@ -256,12 +256,22 @@ async function load() {
   try {
     const tabs = await read([TAB]);
     contacts = tabs[TAB]; sortAll();
+    const first = !ready;
     if (!ready) { ready = true; $("addBtn").hidden = false; }
     renderFilters(); render();
+    if (first) openFromHash();
   } catch (e) {
     if (!ready) $("meta").textContent = "Contacts couldn't load. Reload the page.";
   }
 }
+// /contacts/#<id> opens that person, so other pages can link to a contact.
+function openFromHash() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const c = id && contacts.find(x => x.id === id);
+  if (c && !$("dlg").open) openDlg(c);
+}
+addEventListener("hashchange", openFromHash);
+$("dlg").addEventListener("close", () => { if (location.hash) history.replaceState(null, "", location.pathname); });
 load();
 poll(load);
 </script>
