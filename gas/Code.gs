@@ -4,7 +4,7 @@
  * the pages on Vercel read and write it through this web app.
  *
  * Every request is a POST with a text/plain JSON body that carries the team passcode
- * as `key`. The passcode lives in Script Properties (PASSCODE), never in the repo.
+ * as key. The passcode lives in Script Properties (PASSCODE), never in the repo.
  *
  * Actions:
  *   read      { tabs: [name] }                 -> { tabs: { name: [rows] } }
@@ -225,4 +225,8 @@ function replaceBody(name, rows) {
   var width = sh.getLastColumn();
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, width).clearContent();
   if (rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows.map(function (r) { return r.map(safe); }));
+}
+
+function authorize() {
+  return ss().getName();
 }
