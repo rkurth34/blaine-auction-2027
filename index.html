@@ -90,8 +90,8 @@ a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 const AUCTION_DATE = "2027-05-01";
 const AUCTION_LABEL = "Saturday, May 1, 2027 (date set for now)";
 const TOOLS = [
-  { name: "Org Chart", status: "live", url: "https://claude.ai/artifact/Vjj26xwkQd9d2E6Ufk1qCY",
-    desc: "Every committee seat for 2027. Drag people between seats and mark each one confirmed, ask to return or open." },
+  { name: "Org Chart", status: "live", url: "/org/",
+    desc: "Every committee seat for 2027. Click any card or row to edit it." },
   { name: "Procurement Tracker", status: "live", url: "/tracker/",
     desc: "2027 overview plus a page for each donation stream, including the business donations CRM." },
   { name: "Contacts", status: "live", url: "/contacts/",
@@ -101,7 +101,9 @@ const TOOLS = [
   { name: "Donor Thank-You Log", status: "idea", desc: "Track each gift from received to receipt sent to thank-you sent. Feeds the tax letters." },
   { name: "Team Roster & Seat Sign-up", status: "idea", desc: "A roster volunteers can open to claim an empty seat." },
   { name: "2026 Auction CRM", status: "archive", url: "https://blaine-pta-crm.vercel.app", desc: "Last year's donor CRM. Reference for the 2027 tracker." },
-  { name: "Org Chart draft", status: "archive", url: "https://claude.ai/artifact/SJfLBDiDGaYRtyHWgRMaPJ", desc: "The first written draft of the 2027 org chart." }
+  { name: "Org Chart draft", status: "archive", url: "https://claude.ai/artifact/SJfLBDiDGaYRtyHWgRMaPJ", desc: "The first written draft of the 2027 org chart." },
+  { name: "Org Chart, Claude version", status: "archive", url: "https://claude.ai/artifact/Vjj26xwkQd9d2E6Ufk1qCY",
+    desc: "The chart before it moved to the sheet. No longer updated." }
 ];
 
 const CHIP = { live: "Live", preview: "Preview", idea: "Idea", archive: "Archive" };

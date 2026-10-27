@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blaine Auction Org Chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,750&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/lib/gate.css">
+<style>
+/* Layout: chairs on top, a rule down to each side of the committee, partners in a dashed side rail. Every field edits in place and saves to the sheet. Arrange adds drag handles and structure tools. */
+[hidden] { display: none !important; }
+:root {
+  --paper: #f4f6f9;
+  --surface: #ffffff;
+  --sunk: #e9edf3;
+  --ink: #16202e;
+  --muted: #546072;
+  --line: #cfd6e0;
+  --accent: #c46a00;
+  --accent-ink: #8f4a00;
+  --accent-soft: #fbeedc;
+  --set: #1d7447;
+  --set-soft: #e2f3e9;
+  --ask: #2a59a3;
+  --ask-soft: #e4ecf8;
+  --open: #b0261d;
+  --open-soft: #fbe6e4;
+  --focus: #1f5fd1;
+  --shadow: rgba(22, 32, 46, .18);
+  --on-accent: #1b1206;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --scale: 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f141b; --surface: #171e28; --sunk: #1e2733; --ink: #e8edf4; --muted: #a2acbb; --line: #2e3a4a;
+    --accent: #f0a043; --accent-ink: #f6b866; --accent-soft: #3a2a14;
+    --set: #6fd09c; --set-soft: #143224; --ask: #93b8f6; --ask-soft: #18263d; --open: #ff958b; --open-soft: #3b1a18;
+    --focus: #8ab4ff; --shadow: rgba(0, 0, 0, .5); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f141b; --surface: #171e28; --sunk: #1e2733; --ink: #e8edf4; --muted: #a2acbb; --line: #2e3a4a;
+  --accent: #f0a043; --accent-ink: #f6b866; --accent-soft: #3a2a14;
+  --set: #6fd09c; --set-soft: #143224; --ask: #93b8f6; --ask-soft: #18263d; --open: #ff958b; --open-soft: #3b1a18;
+  --focus: #8ab4ff; --shadow: rgba(0, 0, 0, .5); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--body); font-size: calc(1rem * var(--scale)); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.page { max-width: 1180px; margin: 0 auto; display: grid; gap: 24px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: 16px; top: -60px; background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: 6px; z-index: 30; }
+.skip:focus { top: calc(8px + env(safe-area-inset-top, 0px)); }
+
+header.top { padding-top: 28px; display: grid; gap: 14px; }
+.eyebrow { font-family: var(--mono); font-size: .78em; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); }
+h1 { font-size: clamp(1.9em, 4.5vw, 2.8em); font-weight: 750; letter-spacing: -.01em; }
+.lede { max-width: 66ch; color: var(--muted); }
+.stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 0; padding: 0; }
+.stat { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.stat dt { order: 2; }
+.stat dd { margin: 0; font-family: var(--display); font-weight: 750; font-size: 1.35em; font-variant-numeric: tabular-nums; order: 1; }
+
+/* Controls */
+.controls { display: grid; gap: 12px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: end; }
+.search { flex: 1 1 220px; display: grid; gap: 4px; min-width: 0; }
+.ctl-label, fieldset legend, .search label { font-size: .8em; font-weight: 700; color: var(--muted); }
+input[type="search"], .field input, .field textarea, .field select, select.inline, input.inline, textarea.inline {
+  width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+}
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; min-width: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label, .btn { font-size: .9em; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; min-height: 36px; }
+.seg input:checked + label, .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.seg input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+.btn:hover, .seg label:hover { border-color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.btn.danger { color: var(--open); border-color: var(--open); }
+.btn.small { min-height: 30px; padding: 3px 9px; font-size: .82em; }
+.btn.icon { min-width: 32px; padding: 3px 6px; }
+.ctl-group { display: grid; gap: 4px; }
+.live { font-size: .9em; color: var(--muted); min-height: 1.5em; }
+.savebar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.savestate { font-size: .85em; color: var(--muted); }
+.savestate.bad { color: var(--open); font-weight: 700; }
+.edit-hint { font-size: .9em; color: var(--muted); max-width: 70ch; }
+.editbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.btn.big { font-size: 1.05em; min-height: 46px; padding: 10px 20px; border-radius: 10px; }
+.btn.big.primary[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.notice { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent-soft); max-width: 70ch; }
+body.editing .controls { position: static; }
+
+/* Status marks: shape + word, never color alone */
+.mark { display: inline-flex; align-items: center; gap: 5px; font-size: .82em; font-weight: 700; padding: 2px 8px 2px 6px; border-radius: 999px; white-space: nowrap; }
+.mark svg, .chip svg { width: 13px; height: 13px; flex: none; }
+.mark.set { color: var(--set); background: var(--set-soft); }
+.mark.ask { color: var(--ask); background: var(--ask-soft); }
+.mark.open { color: var(--open); background: var(--open-soft); }
+.mark.partner { color: var(--muted); background: var(--sunk); }
+
+/* Chart */
+.chart { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+.tree { display: grid; gap: 0; min-width: 0; }
+.node-chairs { background: var(--surface); border: 2px solid var(--ink); border-radius: 14px; padding: 14px 16px; display: grid; gap: 10px; max-width: 680px; position: relative; }
+.node-chairs::after { content: ""; position: absolute; left: 40px; top: 100%; height: 22px; border-left: 2px solid var(--line); }
+.chairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.person { display: grid; gap: 2px; align-content: start; }
+.person .nm { font-weight: 700; }
+.person .rl { color: var(--muted); font-size: .9em; }
+.head-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.branches { margin-top: 22px; padding-top: 18px; border-top: 2px solid var(--line); display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 20px; align-items: start; }
+.branch { display: grid; gap: 12px; min-width: 0; position: relative; }
+.branch::before { content: ""; position: absolute; left: 40px; top: -20px; height: 18px; border-left: 2px solid var(--line); }
+.branch-head { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.branch-head h2 { font-size: 1.15em; }
+.branch-head .by { color: var(--muted); font-size: .92em; }
+.groups { display: grid; gap: 16px; }
+.group { display: grid; gap: 8px; }
+.group h3 { font-family: var(--mono); font-weight: 500; font-size: .76em; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-left: 2px; }
+ul.roles { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 8px; }
+.role { position: relative; }
+ul.roles > .role::before { content: ""; position: absolute; left: -14px; top: 22px; width: 12px; border-top: 2px solid var(--line); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.card[open] { border-color: var(--muted); }
+.card > summary, .card > .card-top { list-style: none; padding: 10px 12px; display: grid; gap: 6px; border-radius: 10px; }
+.card > summary { cursor: pointer; }
+.card > summary::-webkit-details-marker { display: none; }
+.sum-top { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.rname { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.chev { flex: none; width: 18px; height: 18px; color: var(--muted); transition: transform .15s; }
+details[open] > summary .chev { transform: rotate(90deg); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: .88em; padding: 2px 8px 2px 6px; border-radius: 6px; background: var(--sunk); }
+.chip svg { width: 12px; height: 12px; }
+.chip.set svg { color: var(--set); } .chip.ask svg { color: var(--ask); } .chip.partner svg { color: var(--muted); }
+.chip.open { background: var(--open-soft); color: var(--open); font-weight: 700; }
+.chip.dim { opacity: .45; }
+.lot { font-family: var(--mono); font-size: .74em; color: var(--accent-ink); background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+.flag { font-size: .8em; font-weight: 700; color: var(--accent-ink); }
+.detail { padding: 10px 12px 12px; display: grid; gap: 10px; border-top: 1px dashed var(--line); }
+.detail p { max-width: 62ch; }
+.lbl { font-size: .78em; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+ul.seats { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.seat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--paper); }
+.seat .nm { font-weight: 700; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.seat .em { font-family: var(--mono); font-size: .8em; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
+.seat .note { grid-column: 1 / -1; font-size: .9em; color: var(--muted); }
+.copy { font-size: .82em; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; grid-row: 1 / span 2; grid-column: 2; }
+.notes { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.past { color: var(--muted); font-size: .92em; }
+
+aside.rail { border: 2px dashed var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+aside.rail h2 { font-size: 1.1em; }
+aside.rail .lede { font-size: .92em; }
+aside.rail ul.roles { padding-left: 0; border-left: 0; }
+aside.rail ul.roles > .role::before { display: none; }
+
+/* Edit mode */
+.grip { flex: none; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; border: 1px dashed var(--line); background: var(--paper); color: var(--muted); cursor: grab; touch-action: none; }
+.grip svg { width: 14px; height: 14px; }
+.grip:active { cursor: grabbing; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.editing ul.roles { min-height: 56px; padding-block: 4px; }
+.editing ul.roles:empty::after, .editing ul.seats:empty::after { content: attr(data-empty); display: block; padding: 10px; border: 2px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: .88em; }
+.editing ul.seats { min-height: 40px; }
+.editing .seat { grid-template-columns: auto minmax(0, 1fr) auto; }
+.editing .seat .em, .editing .seat .note { grid-column: 2 / -1; }
+.seat select.inline { width: auto; padding: 4px 6px; font-size: .85em; }
+.drop-ph { border: 2px dashed var(--accent); border-radius: 10px; background: var(--accent-soft); list-style: none; }
+.ghost { position: fixed; z-index: 50; pointer-events: none; box-shadow: 0 12px 30px var(--shadow); opacity: .95; transform: rotate(1.5deg); border-radius: 10px; }
+.dragging-src { display: none !important; }
+body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select: none; }
+.inline-edit { display: grid; gap: 6px; }
+.inline-edit input.inline { font-family: var(--display); font-weight: 600; font-size: 1.05em; }
+.group-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.group-head input.inline { flex: 1 1 140px; width: auto; font-family: var(--mono); font-size: .82em; text-transform: uppercase; letter-spacing: .06em; }
+.add-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.empty-state { background: var(--surface); border: 2px dashed var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 10px; justify-items: start; }
+/* List view */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; min-width: 720px; }
+caption { text-align: left; padding: 12px 14px 0; font-family: var(--display); font-weight: 600; font-size: 1.1em; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th { font-size: .8em; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+td.mono { font-family: var(--mono); font-size: .82em; overflow-wrap: anywhere; }
+
+.next { display: grid; gap: 14px; }
+.next h2 { font-size: 1.35em; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+ol.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
+ol.steps li.step-ed { gap: 6px; }
+.step-ed input.inline, .step-ed textarea.inline { font-size: .95em; }
+.step-ed input.when-in { font-family: var(--mono); text-transform: uppercase; color: var(--accent-ink); }
+.when { font-family: var(--mono); font-size: .78em; color: var(--accent-ink); text-transform: uppercase; letter-spacing: .06em; }
+.foot { color: var(--muted); font-size: .9em; display: grid; gap: 6px; max-width: 80ch; }
+.empty { color: var(--muted); font-style: italic; padding: 6px 2px; }
+
+@media (max-width: 980px) { .chart { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .controls { position: static; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .ghost { transform: none; } }
+
+/* Click-to-edit fields: read like text until hovered or focused */
+.fx { width: 100%; min-width: 0; padding: 3px 6px; margin: 0 -6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: inherit; font: inherit; line-height: 1.4; }
+.fx:hover { border-color: var(--line); }
+.fx:focus { outline: none; border-color: var(--focus); background: var(--surface); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 25%, transparent); }
+.fx::placeholder { color: var(--muted); opacity: .6; }
+textarea.fx { resize: none; field-sizing: content; min-height: 1.9em; overflow: hidden; display: block; }
+.fx-h2 { font-family: var(--display); font-weight: 750; font-size: 1.15em; }
+.fx-h3 { font-family: var(--mono); font-weight: 500; font-size: .76em; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fx-sub { color: var(--muted); font-size: .92em; }
+.fx-name { font-weight: 700; }
+.card-head { padding: 10px 12px; display: grid; gap: 6px; cursor: pointer; border-radius: 10px; }
+.card.open { border-color: var(--muted); }
+.card.open .card-head { cursor: default; }
+.tog { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -4px -6px -4px 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.tog:hover { background: var(--sunk); }
+.card.open .chev { transform: rotate(90deg); }
+.seat { grid-template-columns: minmax(0, 1fr) auto auto; gap: 0 8px; padding: 6px 8px 6px 12px; }
+.editing .seat { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.seat .fx.em, .seat .fx.note { grid-column: 1 / -1; }
+.editing .seat .fx.em, .editing .seat .fx.note { grid-column: 2 / -1; }
+.seat .fx.em { font-family: var(--mono); font-size: .8em; color: var(--muted); }
+.seat .fx.note { font-size: .9em; color: var(--muted); }
+.st { width: auto; font-size: .8em; font-weight: 700; padding: 2px 6px; margin: 0; border-radius: 999px; cursor: pointer; appearance: none; text-align: center; }
+.st.set { color: var(--set); background: var(--set-soft); } .st.ask { color: var(--ask); background: var(--ask-soft); }
+.st.open { color: var(--open); background: var(--open-soft); } .st.partner { color: var(--muted); background: var(--sunk); }
+.x { border: 0; background: transparent; color: var(--muted); font-size: 1.1em; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; opacity: .5; }
+.x:hover, .x:focus-visible { opacity: 1; background: var(--open-soft); color: var(--open); }
+.fl { display: grid; gap: 0; }
+.fl > span { font-size: .72em; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.addp { display: flex; gap: 6px; flex-wrap: wrap; }
+.addp .btn { min-height: 28px; padding: 2px 9px; font-size: .8em; border-style: dashed; background: transparent; color: var(--muted); }
+.node-chairs ul.seats { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+td .fx { margin: 0; }
+td { padding: 6px 8px; }
+td .st { font-size: .78em; }
+ol.steps .fx.when { font-family: var(--mono); font-size: .78em; color: var(--accent-ink); text-transform: uppercase; letter-spacing: .06em; }
+ol.steps .fx.ttl { font-weight: 700; }
+.next h2 .fx { font-size: 1em; font-family: var(--display); font-weight: 600; }
+.seat .grip { grid-row: 1 / span 3; align-self: start; }
+.x { width: auto; min-width: 26px; }
+.seat .fx:not(:focus)::placeholder { opacity: 0; }
+.seat:hover .fx::placeholder { opacity: .6; }
+</style>
+</head>
+<body>
+<a class="skip" href="#chart">Skip to the org chart</a>
+<div class="page">
+  <header class="top">
+    <p class="eyebrow"><a href="/" style="color:inherit">Auction HQ</a> · 2027</p>
+    <h1>Auction committee org chart</h1>
+    <dl class="stats" id="stats"></dl>
+  </header>
+
+  <section class="controls" aria-label="Find and view">
+    <div class="row">
+      <div class="search">
+        <label for="q" class="sr">Find a person or role</label>
+        <input type="search" id="q" placeholder="Find a person or role" autocomplete="off">
+      </div>
+      <fieldset>
+        <legend class="sr">Show seats</legend>
+        <div class="seg">
+          <input type="radio" name="status" id="st-all" value="all" checked><label for="st-all">All</label>
+          <input type="radio" name="status" id="st-set" value="set"><label for="st-set">Confirmed</label>
+          <input type="radio" name="status" id="st-ask" value="ask"><label for="st-ask">Ask to return</label>
+          <input type="radio" name="status" id="st-open" value="open"><label for="st-open">Open</label>
+        </div>
+      </fieldset>
+    </div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" class="btn" id="v-chart" aria-pressed="true">Chart</button>
+        <button type="button" class="btn" id="v-list" aria-pressed="false">List</button>
+      </div>
+      <div class="seg" role="group" aria-label="Role details">
+        <button type="button" class="btn" id="expandAll">Open all</button>
+        <button type="button" class="btn" id="collapseAll">Close all</button>
+      </div>
+      <div class="seg" role="group" aria-label="Text size">
+        <button type="button" class="btn" data-size="1" aria-pressed="true" aria-label="Standard text">A</button>
+        <button type="button" class="btn" data-size="1.15" aria-pressed="false" aria-label="Large text" style="font-size:1.05em">A</button>
+        <button type="button" class="btn" data-size="1.3" aria-pressed="false" aria-label="Larger text" style="font-size:1.2em">A</button>
+      </div>
+      <div class="savebar">
+        <button type="button" class="btn" id="editToggle" aria-pressed="false">Arrange</button>
+        <button type="button" class="btn" id="undoBtn" disabled>Undo</button>
+        <span class="savestate" id="saveState">Loading…</span>
+      </div>
+    </div>
+    <p class="sr" id="live" role="status" aria-live="polite"></p>
+  </section>
+
+  <main id="chart" tabindex="-1">
+    <div id="chartView"></div>
+    <div id="listView" hidden>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Role</th><th scope="col">Side</th><th scope="col">Person</th><th scope="col">Status</th><th scope="col">Email</th><th scope="col">In 2025</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <section class="next" aria-label="Timeline">
+    <h2><label class="sr" for="stepsName">Timeline heading</label><input class="fx" id="stepsName" data-k="stepsName"></h2>
+    <ol class="steps" id="steps"></ol>
+    <div class="add-row" id="stepAddRow" hidden><button type="button" class="btn small" data-act="step-add">Add a step</button></div>
+  </section>
+
+  <footer class="foot">
+    <p>2026 lots: live 1 to 9, silent 100s, hosted events 300s, classroom art 700s. Paddles 101 to 350.</p>
+  </footer>
+</div>
+<script type="module">
+const ICON = {
+  set: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ask: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M12.5 8a4.5 4.5 0 1 1-1.4-3.3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12.8 2.2v3.3H9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  open: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 2.2"/></svg>',
+  partner: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.4" fill="currentColor"/></svg>'
+};
+const GRIP = '<svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="5.5" cy="3.5" r="1.4"/><circle cx="10.5" cy="3.5" r="1.4"/><circle cx="5.5" cy="8" r="1.4"/><circle cx="10.5" cy="8" r="1.4"/><circle cx="5.5" cy="12.5" r="1.4"/><circle cx="10.5" cy="12.5" r="1.4"/></g></svg>';
+const CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const WORD = { set: 'Confirmed', ask: 'Ask to return', open: 'Open', partner: 'Partner' };
+const STATUSES = ['set', 'ask', 'open', 'partner'];
+import { readOrg, saveOrg, poll } from '/lib/api.js';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rid = p => p + Math.random().toString(36).slice(2, 9);
+const clone = o => JSON.parse(JSON.stringify(o));
+const live = $('live');
+const say = t => { live.textContent = ''; setTimeout(() => { live.textContent = t; }, 30); };
+
+let chart = null;
+let arranging = false, listMode = false, status = 'all';
+const openRoles = new Set();
+const history = [];
+
+/* ---------- model helpers ---------- */
+function allLists() {
+  const out = [];
+  chart.branches.forEach(b => b.groups.forEach(g => out.push({ list: g.roles, group: g, branch: b })));
+  out.push({ list: chart.rail.roles, group: chart.rail, branch: null });
+  return out;
+}
+function findRole(id) {
+  if (id === 'chairs') return { role: chart.chairs, list: null, idx: -1 };
+  for (const l of allLists()) { const i = l.list.findIndex(r => r.id === id); if (i > -1) return { role: l.list[i], list: l.list, idx: i, group: l.group, branch: l.branch }; }
+  return null;
+}
+function findList(listId) {
+  if (listId === 'rail') return chart.rail.roles;
+  for (const b of chart.branches) for (const g of b.groups) if (g.id === listId) return g.roles;
+  return null;
+}
+function findGroup(gid) {
+  for (const b of chart.branches) { const i = b.groups.findIndex(g => g.id === gid); if (i > -1) return { group: b.groups[i], branch: b, idx: i }; }
+  return null;
+}
+function allRoles() { return [chart.chairs, ...allLists().flatMap(l => l.list)]; }
+function findSeat(sid) {
+  for (const r of allRoles()) { const i = r.seats.findIndex(s => s.id === sid); if (i > -1) return { seat: r.seats[i], role: r, idx: i }; }
+  return null;
+}
+function listIdOf(f) { return f && f.branch ? f.group.id : 'rail'; }
+function groupLabel(listId) {
+  if (listId === 'rail') return chart.rail.name;
+  const f = findGroup(listId); return f ? f.branch.name + ' › ' + f.group.name : '';
+}
+// The model object and key an editable field is bound to.
+function bound(el) {
+  const k = el.dataset && el.dataset.k; if (!k || !chart) return null;
+  const d = el.dataset; let o = null;
+  if (d.r) { const f = findRole(d.r); o = f && f.role; }
+  else if (d.s) { const f = findSeat(d.s); o = f && f.seat; }
+  else if (d.b) o = chart.branches.find(b => b.id === d.b);
+  else if (d.g) { const f = findGroup(d.g); o = f && f.group; }
+  else if (d.rail) o = chart.rail;
+  else if (d.st) o = (chart.steps || []).find(x => x.id === d.st);
+  else if (el.id === 'stepsName') o = chart;
+  return o ? { o, k } : null;
+}
+
+/* ---------- rendering ---------- */
+const opts = v => STATUSES.map(k => `<option value="${k}"${k === v ? ' selected' : ''}>${WORD[k]}</option>`).join('');
+const tagsHTML = r => `${r.lots ? `<span class="lot">${esc(r.lots)}</span>` : ''}${r.flag ? `<span class="flag">${esc(r.flag)}</span>` : ''}`;
+function chipsHTML(r) {
+  return r.seats.map(s => `<span class="chip ${s.s}" data-status="${s.s}">${ICON[s.s] || ''}<span>${esc(s.s === 'open' ? 'Open seat' : (s.n || 'Unnamed'))}<span class="sr">, ${WORD[s.s]}</span></span></span>`).join('') + tagsHTML(r);
+}
+function searchText(r) {
+  return [r.name, r.owns, r.y25, r.notes, r.lots, r.flag, ...r.seats.map(s => s.n + ' ' + s.e + ' ' + s.note)].join(' ').toLowerCase();
+}
+function seatHTML(s) {
+  const a = `data-s="${s.id}"`;
+  return `<li class="seat" data-seat="${s.id}" data-seatrow="${s.id}" data-status="${s.s}">
+    ${arranging ? `<button type="button" class="grip" data-drag="seat" data-id="${s.id}" aria-label="Drag ${esc(s.n)} to another role">${GRIP}</button>` : ''}
+    <input class="fx nm" ${a} data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Name">
+    <select class="fx st ${s.s}" ${a} data-k="s" aria-label="Status for ${esc(s.n)}">${opts(s.s)}</select>
+    <button type="button" class="x" data-act="seat-del" data-id="${s.id}" aria-label="Remove ${esc(s.n || 'this seat')}">×</button>
+    <input class="fx em" type="email" ${a} data-k="e" value="${esc(s.e)}" placeholder="Email" aria-label="Email for ${esc(s.n)}">
+    <input class="fx note" ${a} data-k="note" value="${esc(s.note)}" placeholder="Note" aria-label="Note for ${esc(s.n)}">
+  </li>`;
+}
+function detailHTML(r) {
+  const a = `data-r="${r.id}"`;
+  return `<div class="detail">
+    <textarea class="fx" rows="1" ${a} data-k="owns" placeholder="What this role covers" aria-label="What this role covers">${esc(r.owns)}</textarea>
+    <ul class="seats" data-role="${r.id}" data-empty="Drop people here">${r.seats.map(seatHTML).join('')}</ul>
+    <div class="addp"><button type="button" class="btn" data-act="seat-add" data-id="${r.id}">+ Person</button><button type="button" class="btn" data-act="seat-open" data-id="${r.id}">+ Open seat</button></div>
+    <label class="fl"><span>In 2025</span><input class="fx" ${a} data-k="y25" value="${esc(r.y25)}"></label>
+    <label class="fl"><span>Notes</span><textarea class="fx" rows="1" ${a} data-k="notes">${esc(r.notes)}</textarea></label>
+    <div class="pair"><label class="fl"><span>Tag</span><input class="fx" ${a} data-k="lots" value="${esc(r.lots)}"></label><label class="fl"><span>Flag</span><input class="fx" ${a} data-k="flag" value="${esc(r.flag)}"></label></div>
+    <div><button type="button" class="btn small danger" data-act="role-del" data-id="${r.id}">Delete role</button></div>
+  </div>`;
+}
+function roleHTML(r, listId) {
+  const open = arranging || openRoles.has(r.id);
+  const name = open
+    ? `<input class="fx fx-name" data-r="${r.id}" data-k="name" value="${esc(r.name)}" aria-label="Role name">`
+    : `<span class="rname">${esc(r.name)}</span>`;
+  const right = arranging
+    ? `<span class="tools"><button type="button" class="grip" data-drag="role" data-id="${r.id}" aria-label="Drag ${esc(r.name)}">${GRIP}</button>
+        <button type="button" class="btn small icon" data-act="role-up" data-id="${r.id}" aria-label="Move ${esc(r.name)} up">↑</button>
+        <button type="button" class="btn small icon" data-act="role-down" data-id="${r.id}" aria-label="Move ${esc(r.name)} down">↓</button></span>`
+    : `<button type="button" class="tog" data-tog="${r.id}" aria-expanded="${open}" aria-label="${open ? 'Close' : 'Open'} ${esc(r.name)}">${CHEV}</button>`;
+  const move = arranging ? `<select class="inline" data-act="role-move" data-id="${r.id}" aria-label="Move ${esc(r.name)} to" style="width:auto;max-width:100%;padding:4px 6px;font-size:.85em">
+      <option value="">Move to…</option>
+      ${allLists().map(l => { const lid = l.branch ? l.group.id : 'rail'; return lid === listId ? '' : `<option value="${lid}">${esc(groupLabel(lid))}</option>`; }).join('')}
+    </select>` : '';
+  return `<li class="role" data-id="${r.id}" data-search="${esc(searchText(r))}">
+    <div class="card${open ? ' open' : ''}">
+      <div class="card-head" data-head="${r.id}">
+        <div class="sum-top">${name}${right}</div>${move}
+        ${open ? '' : `<span class="chips">${chipsHTML(r)}</span>`}
+      </div>
+      ${open ? detailHTML(r) : ''}
+    </div></li>`;
+}
+const rolesList = (roles, listId) => `<ul class="roles" data-list="${listId}" data-empty="Drop roles here">${roles.map(r => roleHTML(r, listId)).join('')}</ul>`;
+
+function render() {
+  const host = $('chartView');
+  if (!chart) {
+    host.className = '';
+    host.innerHTML = `<div class="empty-state"><h2>No chart saved yet</h2><button type="button" class="btn" data-act="start-blank">Start a blank chart</button></div>`;
+    renderStats(); renderTable(); renderSteps(); return;
+  }
+  host.className = 'chart' + (arranging ? ' editing' : '');
+  const c = chart.chairs;
+  const chairsBox = `<section class="node-chairs" aria-label="${esc(c.name)}">
+      <input class="fx fx-h2" data-r="chairs" data-k="name" value="${esc(c.name)}" aria-label="Leadership box name">
+      <textarea class="fx fx-sub" rows="1" data-r="chairs" data-k="owns" placeholder="What the chairs cover" aria-label="What the chairs cover">${esc(c.owns)}</textarea>
+      <ul class="seats" data-role="chairs" data-empty="Drop people here">${c.seats.map(seatHTML).join('')}</ul>
+      <div class="addp"><button type="button" class="btn" data-act="seat-add" data-id="chairs">+ Person</button></div>
+    </section>`;
+  const branches = chart.branches.map((b, bi) => {
+    const head = `<div class="branch-head">
+        <input class="fx fx-h2" data-b="${b.id}" data-k="name" value="${esc(b.name)}" aria-label="Side name">
+        <textarea class="fx fx-sub" rows="1" data-b="${b.id}" data-k="lead" placeholder="Who leads this side" aria-label="Who leads this side">${esc(b.lead)}</textarea>
+        ${arranging ? `<div class="tools">
+          <button type="button" class="btn small" data-act="branch-left" data-id="${b.id}" ${bi === 0 ? 'disabled' : ''}>Move left</button>
+          <button type="button" class="btn small" data-act="branch-right" data-id="${b.id}" ${bi === chart.branches.length - 1 ? 'disabled' : ''}>Move right</button>
+          <button type="button" class="btn small" data-act="group-add" data-id="${b.id}">Add group</button>
+          <button type="button" class="btn small danger" data-act="branch-del" data-id="${b.id}">Delete side</button>
+        </div>` : ''}</div>`;
+    const groups = b.groups.map((g, gi) => {
+      const gh = `<div class="group-head">
+          <input class="fx fx-h3" data-g="${g.id}" data-k="name" value="${esc(g.name)}" aria-label="Group name" style="flex:1 1 140px;width:auto">
+          ${arranging ? `<button type="button" class="btn small icon" data-act="group-up" data-id="${g.id}" aria-label="Move group ${esc(g.name)} up" ${gi === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" class="btn small icon" data-act="group-down" data-id="${g.id}" aria-label="Move group ${esc(g.name)} down" ${gi === b.groups.length - 1 ? 'disabled' : ''}>↓</button>
+          ${chart.branches.length > 1 ? `<select class="inline" data-act="group-move" data-id="${g.id}" aria-label="Move group ${esc(g.name)} to side" style="width:auto;padding:4px 6px;font-size:.85em"><option value="">Move to side…</option>${chart.branches.filter(x => x.id !== b.id).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>` : ''}
+          <button type="button" class="btn small" data-act="role-add" data-id="${g.id}">Add role</button>
+          <button type="button" class="btn small danger" data-act="group-del" data-id="${g.id}">Delete group</button>` : ''}
+        </div>`;
+      return `<section class="group" aria-label="${esc(g.name)}">${gh}${rolesList(g.roles, g.id)}</section>`;
+    }).join('');
+    return `<section class="branch" aria-label="${esc(b.name)}">${head}<div class="groups">${groups}</div></section>`;
+  }).join('');
+  const rail = `<aside class="rail" aria-label="${esc(chart.rail.name)}">
+      <input class="fx fx-h2" data-rail="1" data-k="name" value="${esc(chart.rail.name)}" aria-label="Side panel name">
+      <textarea class="fx fx-sub" rows="1" data-rail="1" data-k="intro" placeholder="What this panel is" aria-label="Side panel description">${esc(chart.rail.intro)}</textarea>
+      ${arranging ? `<div class="tools"><button type="button" class="btn small" data-act="role-add" data-id="rail">Add box</button></div>` : ''}
+      ${rolesList(chart.rail.roles, 'rail')}
+    </aside>`;
+  host.innerHTML = `<div class="tree">${chairsBox}<div class="branches">${branches}</div>${arranging ? `<div class="add-row" style="margin-top:16px"><button type="button" class="btn" data-act="branch-add">Add a side</button></div>` : ''}</div>${rail}`;
+  renderStats(); renderTable(); applyFilter(true); renderSteps(); fitAll();
+}
+
+const DEFAULT_STEPS = [
+  ['Now to November', 'Settle the 2027 date', 'May 1 or May 15. May 1 pulls every deadline below up by about two weeks.'],
+  ['December', 'Welcome-back email', 'Ask each 2026 person to return. This turns the blue seats green.'],
+  ['Before January', 'Write role descriptions', 'One short description per open seat, so recruiting asks are concrete.'],
+  ['Early January', 'Recruit the open seats', 'Start with sponsor benefits, ticket sales, set up, music, MC and audio.'],
+  ['First week of February', 'Committee kickoff', 'Business, family, sponsor and hosted event asks start.']
+];
+function ensureSteps(c) {
+  if (!c) return c;
+  if (!Array.isArray(c.steps)) c.steps = DEFAULT_STEPS.map(([when, title, text], i) => ({ id: 'st' + (i + 1), when, title, text }));
+  if (typeof c.stepsName !== 'string') c.stepsName = 'Filling the chart, in order';
+  return c;
+}
+function renderSteps() {
+  const ol = $('steps');
+  if (!chart) { ol.innerHTML = ''; $('stepAddRow').hidden = true; return; }
+  if (document.activeElement !== $('stepsName')) $('stepsName').value = chart.stepsName;
+  $('stepAddRow').hidden = !arranging;
+  const n = chart.steps.length;
+  ol.innerHTML = chart.steps.map((st, i) => `<li>
+      <input class="fx when" data-st="${st.id}" data-k="when" value="${esc(st.when)}" placeholder="When" aria-label="When">
+      <input class="fx ttl" data-st="${st.id}" data-k="title" value="${esc(st.title)}" placeholder="Step" aria-label="Step">
+      <textarea class="fx" rows="1" data-st="${st.id}" data-k="text" placeholder="Details" aria-label="Details">${esc(st.text)}</textarea>
+      ${arranging ? `<div class="tools">
+        <button type="button" class="btn small icon" data-act="step-up" data-id="${st.id}" aria-label="Move ${esc(st.title)} earlier" ${i === 0 ? 'disabled' : ''}>←</button>
+        <button type="button" class="btn small icon" data-act="step-down" data-id="${st.id}" aria-label="Move ${esc(st.title)} later" ${i === n - 1 ? 'disabled' : ''}>→</button>
+        <button type="button" class="btn small danger" data-act="step-del" data-id="${st.id}">Delete</button>
+      </div>` : ''}</li>`).join('');
+}
+function renderStats() {
+  const railIds = new Set(chart ? chart.rail.roles.flatMap(r => r.seats.map(s => s.id)) : []);
+  const committee = chart ? allRoles().flatMap(r => r.seats).filter(s => !railIds.has(s.id)) : [];
+  const n = k => committee.filter(s => s.s === k).length;
+  $('stats').innerHTML = [['set', 'Confirmed'], ['ask', 'Ask to return'], ['open', 'Open seats']]
+    .map(([k, l]) => `<div class="stat"><dt><span class="mark ${k}">${ICON[k]}${l}</span></dt><dd>${n(k)}</dd></div>`).join('');
+}
+function tableRows() {
+  const rows = [];
+  chart.chairs.seats.forEach(s => rows.push([chart.chairs, 'Leadership', s]));
+  chart.branches.forEach(b => b.groups.forEach(g => g.roles.forEach(r => r.seats.forEach(s => rows.push([r, b.name, s])))));
+  chart.rail.roles.forEach(r => r.seats.forEach(s => rows.push([r, chart.rail.name, s])));
+  return rows;
+}
+const rowSearch = (r, side, s) => (r.name + ' ' + side + ' ' + s.n + ' ' + s.e + ' ' + (r.y25 || '')).toLowerCase();
+function renderTable() {
+  if (!chart) { $('tbody').innerHTML = ''; return; }
+  $('tbody').innerHTML = tableRows().map(([r, side, s]) => `<tr data-seatrow="${s.id}" data-side="${esc(side)}" data-status="${s.s}" data-search="${esc(rowSearch(r, side, s))}">
+    <td><input class="fx" data-r="${r.id}" data-k="name" value="${esc(r.name)}" aria-label="Role"></td>
+    <td>${esc(side)}</td>
+    <td><input class="fx" data-s="${s.id}" data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Person"></td>
+    <td><select class="fx st ${s.s}" data-s="${s.id}" data-k="s" aria-label="Status">${opts(s.s)}</select></td>
+    <td><input class="fx" type="email" data-s="${s.id}" data-k="e" value="${esc(s.e)}" placeholder="Email" aria-label="Email" style="font-family:var(--mono);font-size:.82em"></td>
+    <td><input class="fx" data-r="${r.id}" data-k="y25" value="${esc(r.y25)}" aria-label="In 2025"></td></tr>`).join('');
+}
+
+// After a field edit, bring every other copy of the data on the page up to date without a re-render,
+// so focus and typing are never interrupted.
+function syncAll() {
+  const act = document.activeElement;
+  document.querySelectorAll('[data-k]').forEach(el => {
+    if (el === act) return;
+    const b = bound(el); if (!b) return;
+    const v = b.o[b.k] == null ? '' : String(b.o[b.k]);
+    if (el.value !== v) el.value = v;
+  });
+  document.querySelectorAll('select.st').forEach(el => { el.className = 'fx st ' + el.value; });
+  document.querySelectorAll('[data-seatrow]').forEach(x => {
+    const f = findSeat(x.dataset.seatrow); if (!f) return;
+    x.dataset.status = f.seat.s;
+    if (x.tagName === 'TR') x.dataset.search = rowSearch(f.role, x.dataset.side, f.seat);
+  });
+  document.querySelectorAll('#chartView .role[data-id]').forEach(li => {
+    const f = findRole(li.dataset.id); if (!f) return;
+    li.dataset.search = searchText(f.role);
+    const c = li.querySelector(':scope > .card > .card-head > .chips'); if (c) c.innerHTML = chipsHTML(f.role);
+    const nm = li.querySelector('.rname'); if (nm) nm.textContent = f.role.name;
+  });
+  renderStats(); applyFilter(true);
+}
+
+function fit(el) { if (CSS.supports('field-sizing', 'content')) return; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function fitAll() { document.querySelectorAll('textarea.fx').forEach(fit); }
+document.addEventListener('input', e => { if (e.target.matches('textarea.fx')) fit(e.target); });
+
+/* ---------- filtering ---------- */
+function applyFilter(quiet) {
+  const term = $('q').value.trim().toLowerCase();
+  let shownRoles = 0, tableShown = 0;
+  document.querySelectorAll('#chartView .role').forEach(li => {
+    const statuses = (findRole(li.dataset.id) || { role: { seats: [] } }).role.seats.map(s => s.s);
+    const show = (!term || li.dataset.search.includes(term)) && (status === 'all' || statuses.includes(status));
+    li.hidden = !show; if (show) shownRoles++;
+    li.querySelectorAll('.chip').forEach(c => c.classList.toggle('dim', status !== 'all' && c.dataset.status !== status));
+    li.querySelectorAll('.seat').forEach(se => { se.style.opacity = (status !== 'all' && se.dataset.status !== status) ? '.5' : ''; });
+  });
+  if (!arranging) document.querySelectorAll('#chartView .group').forEach(g => { g.hidden = !!(term || status !== 'all') && ![...g.querySelectorAll('.role')].some(li => !li.hidden); });
+  document.querySelectorAll('#tbody tr').forEach(tr => {
+    const show = (status === 'all' || tr.dataset.status === status) && (!term || tr.dataset.search.includes(term));
+    tr.hidden = !show; if (show) tableShown++;
+  });
+  if (!quiet) say(listMode ? `${tableShown} seats shown.` : `${shownRoles} roles shown.`);
+}
+$('q').addEventListener('input', () => applyFilter());
+document.querySelectorAll('input[name="status"]').forEach(r => r.addEventListener('change', () => { status = r.value; applyFilter(); }));
+
+/* ---------- saving ---------- */
+let saving = false, dirty = false, saveTimer = null, retry = 0;
+function setSaveState(text, bad) { const el = $('saveState'); el.textContent = text; el.classList.toggle('bad', !!bad); }
+function remember() { history.push(JSON.stringify(chart)); if (history.length > 60) history.shift(); $('undoBtn').disabled = false; }
+// A field edit: no re-render.
+function edit(mutator) { if (!chart) return; remember(); mutator(); syncAll(); scheduleSave(); }
+// A structural edit: re-render.
+function change(mutator, message) { if (!chart) return; remember(); mutator(); render(); if (message) say(message); scheduleSave(); }
+function scheduleSave() { dirty = true; setSaveState('Saving…'); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
+async function flush() {
+  if (saving || !dirty || !chart) return;
+  saving = true; dirty = false;
+  try {
+    await saveOrg(clone(chart));
+    retry = 0;
+    if (!dirty) setSaveState('Saved');
+  } catch (e) {
+    dirty = true; retry++;
+    setSaveState('Not saved yet. Retrying…', true);
+    clearTimeout(saveTimer); saveTimer = setTimeout(flush, Math.min(30000, 2000 * retry));
+  } finally {
+    saving = false;
+    if (dirty && !retry) flush();
+  }
+}
+addEventListener('beforeunload', e => { if (dirty || saving) { e.preventDefault(); e.returnValue = ''; } });
+$('undoBtn').addEventListener('click', () => {
+  if (!history.length) return;
+  chart = JSON.parse(history.pop());
+  $('undoBtn').disabled = !history.length;
+  render(); say('Undone.'); scheduleSave();
+});
+
+let dragging = false;
+const busy = () => saving || dirty || dragging || !!(document.activeElement && document.activeElement.matches && document.activeElement.matches('.fx, select.inline'));
+
+/* ---------- field edits ---------- */
+document.addEventListener('change', e => {
+  const el = e.target; const b = bound(el); if (!b) return;
+  let v = el.tagName === 'SELECT' ? el.value : el.value.trim();
+  if (b.k === 'name' && !v) v = 'Untitled';
+  if (b.k === 'stepsName' && !v) v = 'Timeline';
+  if (el.value !== v) el.value = v;
+  if (v === (b.o[b.k] == null ? '' : String(b.o[b.k]))) return;
+  edit(() => { b.o[b.k] = v; });
+});
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (!el.matches || !el.matches('input.fx')) return;
+  if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+  if (e.key === 'Escape') { const b = bound(el); if (b) el.value = b.o[b.k] == null ? '' : b.o[b.k]; el.blur(); }
+});
+
+/* ---------- actions ---------- */
+function newRole(name) { return { id: rid('r'), name, owns: '', lots: '', flag: '', notes: '', y25: '', seats: [{ id: rid('s'), n: 'Open seat', e: '', s: 'open', note: '' }] }; }
+function moveInArray(arr, i, d) { const j = i + d; if (j < 0 || j >= arr.length) return false; const [x] = arr.splice(i, 1); arr.splice(j, 0, x); return true; }
+let armed = null;
+function confirmTwice(btn, key, label) {
+  if (armed === key) { armed = null; return true; }
+  const was = btn.textContent;
+  armed = key; btn.textContent = label + '?'; say('Press again to ' + label.toLowerCase() + '.');
+  setTimeout(() => { if (armed === key) { armed = null; if (btn.isConnected) btn.textContent = was; } }, 4000);
+  return false;
+}
+function focusLater(sel, selectAll) {
+  requestAnimationFrame(() => { const el = document.querySelector(sel); if (el) { el.focus(); if (selectAll && el.select) el.select(); } });
+}
+function toggleRole(id) {
+  if (arranging) return;
+  const f = findRole(id); if (!f) return;
+  const open = !openRoles.has(id);
+  open ? openRoles.add(id) : openRoles.delete(id);
+  const li = document.querySelector(`#chartView .role[data-id="${id}"]`); if (!li) return;
+  li.outerHTML = roleHTML(f.role, listIdOf(f));
+  applyFilter(true); fitAll();
+  if (open) focusLater(`#chartView .role[data-id="${id}"] .fx-name`);
+  else focusLater(`#chartView [data-tog="${id}"]`);
+}
+
+document.addEventListener('click', e => {
+  const tg = e.target.closest('[data-tog]');
+  if (tg) return toggleRole(tg.dataset.tog);
+  const head = e.target.closest('.card-head');
+  if (head && !head.closest('.card.open') && !e.target.closest('button, input, select, textarea')) return toggleRole(head.dataset.head);
+
+  const t = e.target.closest('[data-act]'); if (!t || t.tagName === 'SELECT' || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+  const id = t.dataset.id, act = t.dataset.act;
+  if (act === 'start-blank') {
+    chart = ensureSteps({ chairs: { id: 'chairs', name: 'Co-chairs', owns: '', lots: '', flag: '', notes: '', y25: '', seats: [] }, branches: [{ id: rid('b'), name: 'New side', lead: '', groups: [{ id: rid('g'), name: 'New group', roles: [] }] }], rail: { id: 'rail', name: 'Advisors and partners', intro: '', roles: [] } });
+    render(); scheduleSave(); return;
+  }
+  if (act === 'seat-add' || act === 'seat-open') {
+    const f = findRole(id); if (!f) return;
+    const s = act === 'seat-add' ? { id: rid('s'), n: '', e: '', s: 'ask', note: '' } : { id: rid('s'), n: 'Open seat', e: '', s: 'open', note: '' };
+    change(() => f.role.seats.push(s));
+    focusLater(`#chartView [data-s="${s.id}"][data-k="n"]`, true); return;
+  }
+  if (act === 'seat-del') {
+    const f = findSeat(id); if (!f) return;
+    if (!confirmTwice(t, 's' + id, 'Remove')) return;
+    change(() => f.role.seats.splice(f.idx, 1), `Removed ${f.seat.n || 'the seat'}. Undo brings it back.`); return;
+  }
+  if (act === 'role-del') {
+    const f = findRole(id); if (!f || !f.list) return;
+    if (!confirmTwice(t, 'r' + id, 'Delete role')) return;
+    openRoles.delete(id);
+    change(() => f.list.splice(f.idx, 1), `Deleted ${f.role.name}. Undo brings it back.`); return;
+  }
+  if (act === 'step-add') {
+    const st = { id: rid('st'), when: '', title: 'New step', text: '' };
+    change(() => chart.steps.push(st), 'Added a step.');
+    focusLater(`[data-st="${st.id}"][data-k="when"]`, true); return;
+  }
+  if (act === 'step-up' || act === 'step-down') {
+    const i = chart.steps.findIndex(x => x.id === id); if (i < 0) return;
+    change(() => moveInArray(chart.steps, i, act === 'step-up' ? -1 : 1));
+    focusLater(`[data-act="${act}"][data-id="${id}"]:not([disabled])`); return;
+  }
+  if (act === 'step-del') {
+    const i = chart.steps.findIndex(x => x.id === id); if (i < 0) return;
+    if (!confirmTwice(t, 'st' + id, 'Delete')) return;
+    change(() => chart.steps.splice(i, 1), 'Deleted the step. Undo brings it back.'); return;
+  }
+  if (act === 'role-up' || act === 'role-down') {
+    const f = findRole(id); if (!f || !f.list) return;
+    change(() => moveInArray(f.list, f.idx, act === 'role-up' ? -1 : 1));
+    focusLater(`[data-act="${act}"][data-id="${id}"]`); return;
+  }
+  if (act === 'role-add') {
+    const list = findList(id); if (!list) return;
+    const r = newRole('New role');
+    change(() => list.push(r), 'Added a role.');
+    focusLater(`#chartView [data-r="${r.id}"][data-k="name"]`, true); return;
+  }
+  if (act === 'group-add') {
+    const b = chart.branches.find(x => x.id === id); if (!b) return;
+    const g = { id: rid('g'), name: 'New group', roles: [] };
+    change(() => b.groups.push(g), `Added a group to ${b.name}.`);
+    focusLater(`[data-g="${g.id}"]`, true); return;
+  }
+  if (act === 'group-up' || act === 'group-down') {
+    const f = findGroup(id); if (!f) return;
+    change(() => moveInArray(f.branch.groups, f.idx, act === 'group-up' ? -1 : 1));
+    focusLater(`[data-g="${id}"]`); return;
+  }
+  if (act === 'group-del') {
+    const f = findGroup(id); if (!f) return;
+    if (f.group.roles.length && !confirmTwice(t, 'g' + id, 'Delete group')) return;
+    change(() => f.branch.groups.splice(f.idx, 1), `Deleted group ${f.group.name}. Undo brings it back.`); return;
+  }
+  if (act === 'branch-add') {
+    const b = { id: rid('b'), name: 'New side', lead: '', groups: [{ id: rid('g'), name: 'New group', roles: [] }] };
+    change(() => chart.branches.push(b), 'Added a side.');
+    focusLater(`[data-b="${b.id}"][data-k="name"]`, true); return;
+  }
+  if (act === 'branch-left' || act === 'branch-right') {
+    const i = chart.branches.findIndex(b => b.id === id);
+    change(() => moveInArray(chart.branches, i, act === 'branch-left' ? -1 : 1));
+    focusLater(`[data-b="${id}"][data-k="name"]`); return;
+  }
+  if (act === 'branch-del') {
+    const i = chart.branches.findIndex(b => b.id === id); if (i < 0) return;
+    const b = chart.branches[i];
+    if (b.groups.some(g => g.roles.length) && !confirmTwice(t, 'b' + id, 'Delete side')) return;
+    change(() => chart.branches.splice(i, 1), `Deleted ${b.name}. Undo brings it back.`); return;
+  }
+});
+
+document.addEventListener('change', e => {
+  const t = e.target; const act = t.dataset && t.dataset.act; if (!act) return;
+  const id = t.dataset.id, v = t.value;
+  if (act === 'role-move') {
+    if (!v) return; const f = findRole(id); const dest = findList(v); if (!f || !dest) return;
+    change(() => { f.list.splice(f.idx, 1); dest.push(f.role); }, `Moved ${f.role.name} to ${groupLabel(v)}.`);
+    return;
+  }
+  if (act === 'group-move') {
+    if (!v) return; const f = findGroup(id); const dest = chart.branches.find(b => b.id === v); if (!f || !dest) return;
+    change(() => { f.branch.groups.splice(f.idx, 1); dest.groups.push(f.group); }, `Moved group ${f.group.name} to ${dest.name}.`);
+  }
+});
+
+/* ---------- pointer drag (arrange mode) ---------- */
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.grip'); if (!g || !arranging || e.button > 0) return;
+  e.preventDefault();
+  const type = g.dataset.drag, id = g.dataset.id;
+  const src = type === 'role' ? g.closest('.role') : g.closest('.seat');
+  const rect = src.getBoundingClientRect();
+  const ghost = src.cloneNode(true); ghost.classList.add('ghost'); ghost.removeAttribute('data-id'); ghost.removeAttribute('data-seat'); ghost.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+  ghost.style.width = rect.width + 'px'; ghost.style.left = rect.left + 'px'; ghost.style.top = rect.top + 'px';
+  if (type === 'seat') ghost.style.background = 'var(--surface)';
+  document.body.appendChild(ghost);
+  const ph = document.createElement('li'); ph.className = 'drop-ph'; ph.style.height = rect.height + 'px';
+  src.parentNode.insertBefore(ph, src); src.classList.add('dragging-src');
+  drag = { type, id, src, ghost, ph, dx: e.clientX - rect.left, dy: e.clientY - rect.top, pointerId: e.pointerId };
+  dragging = true; document.body.classList.add('is-dragging');
+  try { g.setPointerCapture(e.pointerId); } catch (_) {}
+});
+document.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  e.preventDefault();
+  drag.ghost.style.left = (e.clientX - drag.dx) + 'px'; drag.ghost.style.top = (e.clientY - drag.dy) + 'px';
+  const edge = 70;
+  if (e.clientY < edge) window.scrollBy(0, -14); else if (e.clientY > innerHeight - edge) window.scrollBy(0, 14);
+  const under = document.elementFromPoint(e.clientX, e.clientY); if (!under) return;
+  const sel = drag.type === 'role' ? 'ul.roles' : 'ul.seats';
+  let cont = under.closest(sel);
+  if (!cont && drag.type === 'seat') { const card = under.closest('.role, .node-chairs'); if (card) cont = card.querySelector('ul.seats'); }
+  if (!cont) return;
+  const items = [...cont.children].filter(c => c !== drag.ph && c !== drag.src && !c.hidden && (c.matches('.role') || c.matches('.seat')));
+  let before = null;
+  for (const it of items) { const r = it.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { before = it; break; } }
+  if (before) cont.insertBefore(drag.ph, before); else cont.appendChild(drag.ph);
+}, { passive: false });
+function endDrag(commit) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.ghost.remove(); d.src.classList.remove('dragging-src'); document.body.classList.remove('is-dragging');
+  const cont = d.ph.parentNode;
+  let next = d.ph.nextElementSibling;
+  while (next && (next === d.src || !(next.matches('.role') || next.matches('.seat')))) next = next.nextElementSibling;
+  d.ph.remove(); dragging = false;
+  if (!commit || !cont) { render(); return; }
+  if (d.type === 'role') {
+    const f = findRole(d.id); const dest = findList(cont.dataset.list); if (!f || !dest) return render();
+    const nextId = next && next.dataset.id;
+    change(() => { f.list.splice(f.idx, 1); const j = nextId ? dest.findIndex(r => r.id === nextId) : -1; if (j < 0) dest.push(f.role); else dest.splice(j, 0, f.role); }, `Moved ${f.role.name}.`);
+  } else {
+    const f = findSeat(d.id); const destRole = findRole(cont.dataset.role); if (!f || !destRole) return render();
+    const nextId = next && next.dataset.seat;
+    change(() => { f.role.seats.splice(f.idx, 1); const arr = destRole.role.seats; const j = nextId ? arr.findIndex(s => s.id === nextId) : -1; if (j < 0) arr.push(f.seat); else arr.splice(j, 0, f.seat); }, `Moved ${f.seat.n} to ${destRole.role.name}.`);
+  }
+}
+document.addEventListener('pointerup', e => { if (drag && e.pointerId === drag.pointerId) endDrag(true); });
+document.addEventListener('pointercancel', () => endDrag(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drag) { endDrag(false); say('Move cancelled.'); } });
+
+/* ---------- view, size, arrange ---------- */
+const vChart = $('v-chart'), vList = $('v-list');
+function setView(list) {
+  listMode = list;
+  $('chartView').hidden = list; $('listView').hidden = !list;
+  vChart.setAttribute('aria-pressed', String(!list)); vList.setAttribute('aria-pressed', String(list));
+  $('expandAll').disabled = list || arranging; $('collapseAll').disabled = list || arranging;
+  $('editToggle').disabled = list;
+  try { localStorage.setItem('blaine-view', list ? 'list' : 'chart'); } catch (e) {}
+  applyFilter(true); fitAll();
+}
+vChart.addEventListener('click', () => setView(false));
+vList.addEventListener('click', () => setView(true));
+$('expandAll').addEventListener('click', () => { if (!chart) return; allRoles().forEach(r => r.id !== 'chairs' && openRoles.add(r.id)); render(); });
+$('collapseAll').addEventListener('click', () => { openRoles.clear(); render(); });
+$('editToggle').addEventListener('click', () => {
+  arranging = !arranging;
+  $('editToggle').setAttribute('aria-pressed', String(arranging));
+  $('editToggle').textContent = arranging ? 'Done arranging' : 'Arrange';
+  $('expandAll').disabled = arranging; $('collapseAll').disabled = arranging;
+  document.body.classList.toggle('editing', arranging);
+  render();
+});
+
+const sizeBtns = document.querySelectorAll('[data-size]');
+function setSize(v) {
+  document.documentElement.style.setProperty('--scale', v);
+  sizeBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.size === v)));
+  try { localStorage.setItem('blaine-size', v); } catch (e) {}
+  fitAll();
+}
+sizeBtns.forEach(b => b.addEventListener('click', () => setSize(b.dataset.size)));
+
+/* ---------- start ---------- */
+let savedView = null, savedSize = null;
+try { savedView = localStorage.getItem('blaine-view'); savedSize = localStorage.getItem('blaine-size'); } catch (e) {}
+if (savedSize && [...sizeBtns].some(b => b.dataset.size === savedSize)) setSize(savedSize);
+$('chartView').innerHTML = '<p class="empty">Loading…</p>';
+
+async function refresh() {
+  if (busy()) return;
+  let res;
+  try { res = await readOrg(); } catch (e) { return; }
+  if (!res || !res.chart || busy()) return;
+  const remote = ensureSteps(res.chart);
+  if (JSON.stringify(remote) === JSON.stringify(chart)) return;
+  chart = remote; render(); say('Updated with a teammate’s changes.');
+}
+
+(async () => {
+  try {
+    const res = await readOrg();
+    chart = res.chart ? ensureSteps(clone(res.chart)) : null;
+    setSaveState(chart ? 'Saved' : 'Nothing saved yet');
+  } catch (e) {
+    setSaveState('Couldn’t load the chart. Reload to try again.', true);
+  }
+  render();
+  setView(savedView === 'list');
+  poll(refresh);
+})();
+</script>
+</body>
+</html>
