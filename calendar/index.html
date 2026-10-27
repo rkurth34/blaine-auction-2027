@@ -478,7 +478,11 @@ function edit(id, k, v) {
   e[k] = v;
   if (k === 'date' && e.end && e.end < v) e.end = '';
   if (e === draft) {
-    if (k === 'title' && v.trim()) { commitDraft(); }
+    if (k === 'title' && v.trim()) {
+      commitDraft();
+      const row = document.querySelector(`[data-id="${CSS.escape(id)}"]`);
+      if (row) { row.classList.remove('draft'); row.querySelector('.rfoot').innerHTML = '<span class="stamp"></span><button type="button" class="del" data-act="delete">Delete</button>'; }
+    }
     if (k !== 'title') { if (k === 'date') { selDay = v; view = v.slice(0, 7); } render(); }
     return;
   }
