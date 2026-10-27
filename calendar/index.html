@@ -199,7 +199,7 @@ const TZ = 'America/Los_Angeles';
 
 // ?demo runs the page on made-up rows in memory, for testing without the sheet.
 const DEMO = new URLSearchParams(location.search).has('demo');
-const api = DEMO ? demoApi() : live;
+let api = live;
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -579,6 +579,7 @@ window.addEventListener('hashchange', () => { const id = decodeURIComponent(loca
 
 /* ---------- start ---------- */
 
+if (DEMO) api = demoApi();
 await load();
 const hash = decodeURIComponent(location.hash.slice(1));
 if (hash) openEvent(hash);
