@@ -16,15 +16,21 @@
  *   setting   { name, value }                  -> { ok }         Tracker settings tab
  *   saveOrg   { chart, rev }                   -> { rev }        Org chart JSON + readable tabs
  *   readOrg   {}                               -> { chart, rev }
+ *   signup    { name, email, phone, help, note } -> { ok }        public: the committee sign-up form, no passcode
  *
- * The Calendar tab uses read / upsert / remove like any other tab. It is created on first use,
- * with every cell kept as plain text so dates and times come back as typed.
+ * The Calendar, Links and Signups tabs use read / upsert / remove like any other tab. Each is created
+ * on first use, with every cell kept as plain text so dates and times come back as typed.
  */
 
 var TABS = ['Contacts', 'Business donations', 'Sponsors', 'Family donations', 'Hosted events',
-  'Class art', 'Tracker settings', 'Tools', 'Org chart', 'Timeline', 'Calendar'];
+  'Class art', 'Tracker settings', 'Tools', 'Org chart', 'Timeline', 'Calendar', 'Links', 'Signups'];
 var ORG_DATA = 'Org chart data';
-var CAL_HEADERS = ['id', 'date', 'end', 'time', 'title', 'type', 'status', 'owner', 'note', 'source', 'updatedAt'];
+var NEW_TABS = {
+  Calendar: ['id', 'date', 'end', 'time', 'title', 'type', 'status', 'owner', 'note', 'source', 'updatedAt'],
+  Links: ['id', 'name', 'url', 'group', 'note', 'order', 'updatedAt'],
+  Signups: ['id', 'at', 'name', 'email', 'phone', 'help', 'note', 'status', 'updatedAt']
+};
+var SIGNUPS_PER_DAY = 100;
 
 function doGet() {
   return out({ ok: true, service: 'blaine-2027-auction' });
@@ -34,6 +40,7 @@ function doPost(e) {
   var res;
   try {
     var b = JSON.parse(e.postData.contents);
+    if (b.action === 'signup') return out(locked(function () { return signup(b); }));
     var pass = PropertiesService.getScriptProperties().getProperty('PASSCODE');
     if (!pass || String(b.key || '') !== pass) return out({ error: 'passcode' });
     res = handle(b);
@@ -72,7 +79,7 @@ function ss() { return SpreadsheetApp.getActiveSpreadsheet(); }
 function sheet(name) {
   if (TABS.indexOf(name) === -1) throw new Error('unknown tab');
   var sh = ss().getSheetByName(name);
-  if (!sh && name === 'Calendar') sh = calendarSheet();
+  if (!sh && NEW_TABS[name]) sh = newSheet(name);
   if (!sh) throw new Error('missing tab ' + name);
   return sh;
 }
@@ -215,7 +222,7 @@ function writeOrgTabs(c) {
   var rows = [];
   function seats(side, group, r) {
     (r.seats || []).forEach(function (s) {
-      rows.push([side, group, r.id, r.name, s.id, s.n, s.s, s.e, s.note, r.owns, r.lots, r.flag, r.y25, r.notes]);
+      rows.push([side, group, r.id, r.name, s.id, s.n, s.s, s.e, s.note, r.owns, r.lots, r.flag, r.y25, r.notes, s.lead ? 'Lead' : '']);
     });
   }
   seats('Leadership', '', c.chairs);
@@ -223,6 +230,8 @@ function writeOrgTabs(c) {
     (b.groups || []).forEach(function (g) { (g.roles || []).forEach(function (r) { seats(b.name, g.name, r); }); });
   });
   ((c.rail && c.rail.roles) || []).forEach(function (r) { seats(c.rail.name, '', r); });
+  var head = sheet('Org chart').getRange(1, 15);
+  if (head.getValue() === '') head.setValue('lead');
   replaceBody('Org chart', rows);
   replaceBody('Timeline', (c.steps || []).map(function (s) { return [s.id, s.when, s.title, s.text]; }));
 }
@@ -234,12 +243,37 @@ function replaceBody(name, rows) {
   if (rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows.map(function (r) { return r.map(safe); }));
 }
 
-function calendarSheet() {
-  var sh = ss().insertSheet('Calendar');
-  sh.getRange('A:K').setNumberFormat('@');
-  sh.getRange(1, 1, 1, CAL_HEADERS.length).setValues([CAL_HEADERS]).setFontWeight('bold');
+function newSheet(name) {
+  var headers = NEW_TABS[name];
+  var sh = ss().insertSheet(name);
+  sh.getRange(1, 1, sh.getMaxRows(), headers.length).setNumberFormat('@');
+  sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
   sh.setFrozenRows(1);
   return sh;
+}
+
+/* ---------- committee sign-up: the one action open without the passcode ---------- */
+
+function clip(v, n) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n); }
+
+function signup(b) {
+  if (b.website) return { ok: true }; // honeypot field, left empty by people
+  var row = {
+    name: clip(b.name, 80), email: clip(b.email, 120), phone: clip(b.phone, 40),
+    help: clip(b.help, 300), note: clip(b.note, 600)
+  };
+  if (!row.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) return { error: 'Please add your name and email.' };
+  var t = table('Signups');
+  var today = new Date().toISOString().slice(0, 10);
+  var at = t.headers.indexOf('at');
+  var n = t.rows.filter(function (r) { return String(r[at]).slice(0, 10) === today; }).length;
+  if (n >= SIGNUPS_PER_DAY) return { error: 'Sign-ups are closed for today. Please try again tomorrow.' };
+  row.id = 'su-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  row.at = new Date().toISOString();
+  row.status = 'new';
+  row.updatedAt = row.at;
+  t.sh.appendRow(t.headers.map(function (h) { return safe(row[h]); }));
+  return { ok: true };
 }
 
 function authorize() {
