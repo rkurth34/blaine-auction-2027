@@ -167,7 +167,7 @@ function copyBtn(value, label) {
   return b;
 }
 async function copy(text, btn) {
-  try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = "Copied"; setTimeout(() => { btn.textContent = t; }, 1200); }
+  try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = "Copied"; setTimeout(() => { if (btn.id === "copyAll") renderFilters(); else btn.textContent = t; }, 1200); }
   catch (e) { $("meta").textContent = "Copy didn't work here. Select the text instead."; }
 }
 
