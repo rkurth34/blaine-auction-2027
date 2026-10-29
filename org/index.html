@@ -261,8 +261,8 @@ ol.steps .fx.ttl { font-weight: 700; }
 .x { width: auto; min-width: 26px; }
 .seat .fx:not(:focus)::placeholder { opacity: 0; }
 .seat:hover .fx::placeholder { opacity: .6; }
-.seat { grid-template-columns: minmax(0, 1fr) auto auto auto; }
-.editing .seat { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
+.seat { grid-template-columns: minmax(0, 1fr) auto auto auto auto; }
+.editing .seat { grid-template-columns: auto minmax(0, 1fr) auto auto auto auto; }
 .cl-slot { display: inline-flex; }
 .cl { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--ask); }
 .cl:hover { background: var(--ask-soft); }
@@ -273,6 +273,16 @@ ol.steps .fx.ttl { font-weight: 700; }
 .pick li span { font-size: .82em; color: var(--muted); }
 .pick li:hover, .pick li.on { background: var(--sunk); }
 .pick li.add { color: var(--accent-ink); font-weight: 700; border-top: 1px solid var(--line); margin-top: 2px; }
+.tally { flex: none; font-family: var(--mono); font-size: .74em; font-weight: 500; color: var(--muted); background: var(--sunk); border-radius: 999px; padding: 1px 7px; margin-left: auto; font-variant-numeric: tabular-nums; }
+.tally.full { color: var(--set); background: var(--set-soft); }
+.sum-top .tally + .tog { margin-left: 2px; }
+.lead { border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 1em; line-height: 1; opacity: .45; padding: 0; }
+.lead:hover, .lead:focus-visible { opacity: 1; background: var(--sunk); }
+.lead.on { color: var(--ask); opacity: 1; }
+.lead-tag { font-size: .78em; font-weight: 700; margin-left: 5px; padding: 0 5px; border-radius: 4px; background: var(--surface); color: var(--ink); }
+.foot .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.lead.on { color: #b7791f; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lead.on { color: #f2c46a; } }
 </style>
 </head>
 <body>
@@ -342,7 +352,7 @@ ol.steps .fx.ttl { font-weight: 700; }
   </section>
 
   <footer class="foot">
-    <p>2026 lots: live 1 to 9, silent 100s, hosted events 300s, classroom art 700s. Paddles 101 to 350.</p>
+    <p class="legend"><span>Tags = catalog lot numbers:</span><span>live auction 1 to 9</span><span>silent auction 100s</span><span>hosted events 300s</span><span>class art 700s</span></p>
   </footer>
 </div>
 <script type="module">
@@ -503,19 +513,29 @@ addEventListener('scroll', () => { if (pickFor) showPick(pickFor); }, { passive:
 
 /* ---------- rendering ---------- */
 const opts = v => STATUSES.map(k => `<option value="${k}"${k === v ? ' selected' : ''}>${WORD[k]}</option>`).join('');
-const tagsHTML = r => `${r.lots ? `<span class="lot">${esc(r.lots)}</span>` : ''}${r.flag ? `<span class="flag">${esc(r.flag)}</span>` : ''}`;
+const LOTS = [[/live|1.9/i, 'live auction lots 1 to 9'], [/silent|100/i, 'silent auction lots in the 100s'], [/hosted|300/i, 'hosted event lots in the 300s'], [/art|700/i, 'classroom art lots in the 700s']];
+const lotTitle = t => { const m = LOTS.filter(([re]) => re.test(t)).map(x => x[1]); return m.length ? 'Catalog: ' + m.join(', ') : 'Catalog section'; };
+// People filled vs seats in a role: open seats and blank names don't count.
+const filled = r => r.seats.filter(s => s.s !== 'open' && String(s.n || '').trim() && low(s.n) !== 'open seat').length;
+const tallyHTML = r => r.seats.length ? `<span class="tally${filled(r) >= r.seats.length ? ' full' : ''}" data-tally="${r.id}" title="${filled(r)} of ${r.seats.length} seats filled">${filled(r)}/${r.seats.length}</span>` : '';
+const tagsHTML = r => `${r.lots ? `<span class="lot" title="${esc(lotTitle(r.lots))}">${esc(r.lots)}</span>` : ''}${r.flag ? `<span class="flag">${esc(r.flag)}</span>` : ''}`;
 function chipsHTML(r) {
-  return r.seats.map(s => `<span class="chip ${s.s}" data-status="${s.s}">${ICON[s.s] || ''}<span>${esc(s.s === 'open' ? 'Open seat' : (s.n || 'Unnamed'))}<span class="sr">, ${WORD[s.s]}</span></span></span>`).join('') + tagsHTML(r);
+  return r.seats.map(s => `<span class="chip ${s.s}${s.lead ? ' is-lead' : ''}" data-status="${s.s}">${ICON[s.s] || ''}<span>${esc(s.s === 'open' ? 'Open seat' : (s.n || 'Unnamed'))}${s.lead ? '<b class="lead-tag">Lead</b>' : ''}<span class="sr">, ${WORD[s.s]}</span></span></span>`).join('') + tagsHTML(r);
 }
 function searchText(r) {
   return [r.name, r.owns, r.y25, r.notes, r.lots, r.flag, ...r.seats.map(s => s.n + ' ' + s.e + ' ' + s.note)].join(' ').toLowerCase();
 }
-function seatHTML(s) {
+function leadBtn(s, r) {
+  if (!r || r.id === 'chairs' || r.seats.length < 2) return '';
+  return `<button type="button" class="lead${s.lead ? ' on' : ''}" data-act="seat-lead" data-id="${s.id}" aria-pressed="${!!s.lead}" title="${s.lead ? 'Role lead' : 'Make role lead'}" aria-label="${s.lead ? 'Remove lead' : 'Make lead'}: ${esc(s.n || 'this seat')}">${s.lead ? '★' : '☆'}</button>`;
+}
+function seatHTML(s, r) {
   const a = `data-s="${s.id}"`;
   return `<li class="seat" data-seat="${s.id}" data-seatrow="${s.id}" data-status="${s.s}">
     ${arranging ? `<button type="button" class="grip" data-drag="seat" data-id="${s.id}" aria-label="Drag ${esc(s.n)} to another role">${GRIP}</button>` : ''}
     <input class="fx nm" ${a} data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Name" autocomplete="off">
     <span class="cl-slot" data-cl="${s.id}">${linkHTML(s)}</span>
+    ${leadBtn(s, r) || '<span></span>'}
     <select class="fx st ${s.s}" ${a} data-k="s" aria-label="Status for ${esc(s.n)}">${opts(s.s)}</select>
     <button type="button" class="x" data-act="seat-del" data-id="${s.id}" aria-label="Remove ${esc(s.n || 'this seat')}">×</button>
     <input class="fx em" type="email" ${a} data-k="e" value="${esc(s.e)}" placeholder="Email" aria-label="Email for ${esc(s.n)}">
@@ -526,7 +546,7 @@ function detailHTML(r) {
   const a = `data-r="${r.id}"`;
   return `<div class="detail">
     <textarea class="fx" rows="1" ${a} data-k="owns" placeholder="What this role covers" aria-label="What this role covers">${esc(r.owns)}</textarea>
-    <ul class="seats" data-role="${r.id}" data-empty="Drop people here">${r.seats.map(seatHTML).join('')}</ul>
+    <ul class="seats" data-role="${r.id}" data-empty="Drop people here">${r.seats.map(s => seatHTML(s, r)).join('')}</ul>
     <div class="addp"><button type="button" class="btn" data-act="seat-add" data-id="${r.id}">+ Person</button><button type="button" class="btn" data-act="seat-open" data-id="${r.id}">+ Open seat</button></div>
     <label class="fl"><span>In 2025</span><input class="fx" ${a} data-k="y25" value="${esc(r.y25)}"></label>
     <label class="fl"><span>Notes</span><textarea class="fx" rows="1" ${a} data-k="notes">${esc(r.notes)}</textarea></label>
@@ -551,7 +571,7 @@ function roleHTML(r, listId) {
   return `<li class="role" data-id="${r.id}" data-search="${esc(searchText(r))}">
     <div class="card${open ? ' open' : ''}">
       <div class="card-head" data-head="${r.id}">
-        <div class="sum-top">${name}${right}</div>${move}
+        <div class="sum-top">${name}${tallyHTML(r)}${right}</div>${move}
         ${open ? '' : `<span class="chips">${chipsHTML(r)}</span>`}
       </div>
       ${open ? detailHTML(r) : ''}
@@ -571,7 +591,7 @@ function render() {
   const chairsBox = `<section class="node-chairs" aria-label="${esc(c.name)}">
       <input class="fx fx-h2" data-r="chairs" data-k="name" value="${esc(c.name)}" aria-label="Leadership box name">
       <textarea class="fx fx-sub" rows="1" data-r="chairs" data-k="owns" placeholder="What the chairs cover" aria-label="What the chairs cover">${esc(c.owns)}</textarea>
-      <ul class="seats" data-role="chairs" data-empty="Drop people here">${c.seats.map(seatHTML).join('')}</ul>
+      <ul class="seats" data-role="chairs" data-empty="Drop people here">${c.seats.map(s => seatHTML(s, c)).join('')}</ul>
       <div class="addp"><button type="button" class="btn" data-act="seat-add" data-id="chairs">+ Person</button></div>
     </section>`;
   const branches = chart.branches.map((b, bi) => {
@@ -656,7 +676,7 @@ function renderTable() {
   $('tbody').innerHTML = tableRows().map(([r, side, s]) => `<tr data-seatrow="${s.id}" data-side="${esc(side)}" data-status="${s.s}" data-search="${esc(rowSearch(r, side, s))}">
     <td><input class="fx" data-r="${r.id}" data-k="name" value="${esc(r.name)}" aria-label="Role"></td>
     <td>${esc(side)}</td>
-    <td><div class="pcell"><input class="fx nm" data-s="${s.id}" data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Person" autocomplete="off"><span class="cl-slot" data-cl="${s.id}">${linkHTML(s)}</span></div></td>
+    <td><div class="pcell"><input class="fx nm" data-s="${s.id}" data-k="n" value="${esc(s.n)}" placeholder="Name" aria-label="Person" autocomplete="off"><span class="cl-slot" data-cl="${s.id}">${linkHTML(s)}</span>${leadBtn(s, r)}</div></td>
     <td><select class="fx st ${s.s}" data-s="${s.id}" data-k="s" aria-label="Status">${opts(s.s)}</select></td>
     <td><input class="fx" type="email" data-s="${s.id}" data-k="e" value="${esc(s.e)}" placeholder="Email" aria-label="Email" style="font-family:var(--mono);font-size:.82em"></td>
     <td><input class="fx" data-r="${r.id}" data-k="y25" value="${esc(r.y25)}" aria-label="In 2025"></td></tr>`).join('');
@@ -683,6 +703,7 @@ function syncAll() {
     li.dataset.search = searchText(f.role);
     const c = li.querySelector(':scope > .card > .card-head > .chips'); if (c) c.innerHTML = chipsHTML(f.role);
     const nm = li.querySelector('.rname'); if (nm) nm.textContent = f.role.name;
+    const t = li.querySelector(':scope > .card > .card-head [data-tally]'); if (t) t.outerHTML = tallyHTML(f.role);
   });
   document.querySelectorAll('[data-cl]').forEach(x => { const f = findSeat(x.dataset.cl); if (f) x.innerHTML = linkHTML(f.seat); });
   renderStats(); applyFilter(true);
@@ -809,6 +830,12 @@ document.addEventListener('click', e => {
     const s = act === 'seat-add' ? { id: rid('s'), n: '', e: '', s: 'ask', note: '' } : { id: rid('s'), n: 'Open seat', e: '', s: 'open', note: '' };
     change(() => f.role.seats.push(s));
     focusLater(`#chartView [data-s="${s.id}"][data-k="n"]`, true); return;
+  }
+  if (act === 'seat-lead') {
+    const f = findSeat(id); if (!f) return;
+    const on = !f.seat.lead;
+    change(() => { if (on) f.seat.lead = true; else delete f.seat.lead; }, on ? `${f.seat.n || 'Seat'} is now a lead for ${f.role.name}.` : `${f.seat.n || 'Seat'} is no longer a lead.`);
+    focusLater(`${listMode ? '#tbody' : '#chartView'} [data-act="seat-lead"][data-id="${id}"]`); return;
   }
   if (act === 'seat-del') {
     const f = findSeat(id); if (!f) return;

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Join the Blaine Auction Committee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Public committee sign-up. One short form; no passcode. Saves a row to the sheet's Signups tab. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #17233a; --muted: #5a667c; --line: #d9dfe8;
+  --accent: #1f4fbf; --accent-ink: #ffffff; --paddle: #f2b632; --danger: #b0261d; --ok: #1d7a4a;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1520; --surface: #172131; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
+    --accent: #7ea2ff; --accent-ink: #0f1520; --danger: #ff958b; --ok: #7fd6a4;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+button, input, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.wrap { max-width: 520px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 18px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 7vw, 38px); line-height: 1.05; margin: 4px 0 0; }
+form, .done { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 14px; }
+label, legend { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field { display: grid; gap: 4px; }
+input[type="text"], input[type="email"], input[type="tel"], textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+textarea { resize: vertical; min-height: 70px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips label { display: inline-flex; align-items: center; min-height: 36px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-weight: 500; font-size: 14px; cursor: pointer; }
+.chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chips input:checked + span { font-weight: 600; }
+.chips label:has(input:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chips label:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.two { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.trap { position: absolute; left: -9999px; }
+button[type="submit"] { min-height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+button:disabled { opacity: .6; cursor: default; }
+.err { color: var(--danger); font-size: 14px; margin: 0; }
+.done h2 { font-family: var(--display); font-weight: 600; margin: 0; color: var(--ok); }
+.done p { margin: 0; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div>
+    <div class="eyebrow">Catharine Blaine K-8 PTA · 2027 Auction</div>
+    <h1>Join the auction committee</h1>
+  </div>
+
+  <form id="form" novalidate>
+    <div class="field"><label for="name">Name</label><input type="text" id="name" autocomplete="name" maxlength="80" required></div>
+    <div class="two">
+      <div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="email" maxlength="120" required></div>
+      <div class="field"><label for="phone">Phone</label><input type="tel" id="phone" autocomplete="tel" maxlength="40"></div>
+    </div>
+    <fieldset>
+      <legend>I'd like to help with</legend>
+      <div class="chips" id="help"></div>
+    </fieldset>
+    <div class="field"><label for="note">Anything else</label><textarea id="note" maxlength="600"></textarea></div>
+    <div class="trap" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+    <p class="err" id="err" role="alert" hidden></p>
+    <button type="submit" id="send">Sign up</button>
+  </form>
+
+  <div class="done" id="done" hidden role="status">
+    <h2>Thank you!</h2>
+    <p>You're on the list. Someone from the auction team will be in touch.</p>
+  </div>
+</main>
+<script type="module">
+import { API_URL } from '/lib/config.js';
+
+const AREAS = ['Business donations', 'Family donations', 'Sponsors', 'Hosted events', 'Class art', 'Event night', 'Wherever needed'];
+const $ = id => document.getElementById(id);
+$('help').innerHTML = AREAS.map((a, i) => `<label><input type="checkbox" value="${a}" id="h${i}"><span>${a}</span></label>`).join('');
+
+function fail(text) { $('err').textContent = text; $('err').hidden = false; }
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('err').hidden = true;
+  const v = id => $(id).value.trim();
+  const body = {
+    action: 'signup', name: v('name'), email: v('email'), phone: v('phone'), note: v('note'), website: $('website').value,
+    help: [...document.querySelectorAll('#help input:checked')].map(x => x.value).join(', ')
+  };
+  if (!body.name) { $('name').focus(); return fail('Please add your name.'); }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) { $('email').focus(); return fail('Please add a working email.'); }
+  $('send').disabled = true; $('send').textContent = 'Sending…';
+  try {
+    const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    $('form').hidden = true; $('done').hidden = false; $('done').focus?.();
+  } catch (err) {
+    fail(err && err.message && !/fetch|JSON|network/i.test(err.message) ? err.message : 'That didn’t go through. Please try again.');
+    $('send').disabled = false; $('send').textContent = 'Sign up';
+  }
+});
+</script>
+</body>
+</html>

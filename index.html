@@ -7,11 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/lib/gate.css">
 <style>
-/* Layout: one narrow column. Countdown band on top, then live tools, then coming-soon ideas, then archive. */
+/* Layout: one narrow column. Countdown band on top (reads the Calendar tab), then tools, sign-ups, links, ideas, archive. */
 :root {
-  --bg: #f3f5f8; --surface: #ffffff; --ink: #17233a; --muted: #5a667c; --line: #d9dfe8;
-  --accent: #1f4fbf; --accent-ink: #ffffff; --paddle: #f2b632;
+  --bg: #f3f5f8; --surface: #ffffff; --sunk: #eceff4; --ink: #17233a; --muted: #5a667c; --line: #d9dfe8;
+  --accent: #1f4fbf; --accent-ink: #ffffff; --paddle: #f2b632; --danger: #b0261d;
   --chip-live: #1d7a4a; --chip-live-bg: #e3f3ea; --chip-preview: #8a5a00; --chip-preview-bg: #fbefd2; --chip-idea-bg: #eceff4;
   --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -19,15 +20,17 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1520; --surface: #172131; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
-    --accent: #7ea2ff; --accent-ink: #0f1520;
+    --bg: #0f1520; --surface: #172131; --sunk: #222c3c; --ink: #e6ebf3; --muted: #9aa6ba; --line: #2a3648;
+    --accent: #7ea2ff; --accent-ink: #0f1520; --danger: #ff958b;
     --chip-live: #7fd6a4; --chip-live-bg: #173328; --chip-preview: #f2c46a; --chip-preview-bg: #3a2f14; --chip-idea-bg: #222c3c;
     color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+button, input, select { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wrap {
   max-width: 760px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -40,25 +43,53 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 6vw, 
 .count { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
 .paddle { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--paddle); color: #17233a; display: grid; place-items: center;
   font-family: var(--display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 3px rgba(23,35,58,.15); }
-.count-text { display: grid; gap: 2px; min-width: 0; }
+.count-text { display: grid; gap: 2px; min-width: 0; flex: 1 1 240px; }
 .count-big { font-family: var(--display); font-weight: 600; font-size: 20px; }
 .count-sub { color: var(--muted); font-size: 13.5px; }
+.target { justify-self: start; max-width: 100%; margin-top: 4px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); font-size: 13.5px; cursor: pointer; }
 section { display: grid; gap: 12px; }
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+h3 { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 6px 0 0; }
 .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .tile { display: grid; gap: 6px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
   padding: 16px; color: inherit; text-decoration: none; min-width: 0; transition: border-color .15s, transform .15s; }
 a.tile:hover { border-color: var(--accent); transform: translateY(-1px); }
-a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .tile-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tile-name { font-weight: 600; font-size: 16px; }
 .tile-desc { color: var(--muted); font-size: 13.5px; }
 .open { color: var(--accent); font-weight: 600; font-size: 13.5px; margin-top: 4px; }
 .chip { font-size: 11.5px; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .chip.live { color: var(--chip-live); background: var(--chip-live-bg); }
-.chip.preview { color: var(--chip-preview); background: var(--chip-preview-bg); }
+.chip.preview, .chip.new { color: var(--chip-preview); background: var(--chip-preview-bg); }
 .chip.idea, .chip.archive { color: var(--muted); background: var(--chip-idea-bg); }
 .tile.soon { background: transparent; border-style: dashed; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 3px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13.5px; font-weight: 500; text-decoration: none; color: inherit; }
+.btn:hover { border-color: var(--muted); }
+.btn.add { border-style: dashed; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .5; cursor: default; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px; display: grid; }
+.row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; min-width: 0; flex-wrap: wrap; }
+.row + .row { border-top: 1px solid var(--line); }
+.row .grow { flex: 1 1 220px; min-width: 0; display: grid; }
+.row .sub { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.empty { color: var(--muted); padding: 10px; font-size: 14px; }
+.links { display: grid; gap: 6px; }
+.lk { display: flex; align-items: center; gap: 4px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 2px 2px 2px 12px; }
+.lk a { flex: 1; min-width: 0; color: inherit; text-decoration: none; padding: 6px 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lk a:hover { color: var(--accent); }
+.lk:hover .ic, .lk:focus-within .ic { opacity: 1; }
+.ic { flex: none; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; opacity: .35; font-size: 14px; }
+.ic:hover { background: var(--sunk); color: var(--ink); }
+@media (hover: none) { .ic { opacity: .8; } }
+.lgrid { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.lform { display: grid; gap: 6px; grid-template-columns: 1fr; background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: 8px; grid-column: 1 / -1; }
+.lform input { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.lform .acts { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+@media (min-width: 560px) { .lform { grid-template-columns: 1fr 1.4fr .8fr; } .lform .acts { grid-column: 1 / -1; } }
+.msg { font-size: 13px; color: var(--muted); min-height: 1.2em; }
+.msg.bad { color: var(--danger); }
 .archive-list { display: grid; gap: 8px; }
 .archive-list a { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 14px; border: 1px solid var(--line);
   border-radius: 10px; color: inherit; text-decoration: none; background: var(--surface); }
@@ -76,28 +107,52 @@ a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
     <div class="count" aria-live="polite">
       <div class="paddle" id="days">--</div>
       <div class="count-text">
-        <div class="count-big" id="count-big">days to auction night</div>
+        <div class="count-big" id="count-big">Loading the calendar…</div>
         <div class="count-sub" id="count-sub"></div>
+        <label class="sr" for="target">Count down to</label>
+        <select class="target" id="target" hidden></select>
       </div>
     </div>
   </header>
+
   <section aria-labelledby="h-tools"><h2 id="h-tools">Tools</h2><div class="grid" id="tools"></div></section>
+
+  <section aria-labelledby="h-signup">
+    <div class="sec-head">
+      <h2 id="h-signup">Committee sign-ups</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <a class="btn" href="/signup/" target="_blank" rel="noopener">Open form ↗</a>
+        <button type="button" class="btn" id="copyForm">Copy form link</button>
+      </div>
+    </div>
+    <div class="panel" id="signups"><div class="empty">Loading…</div></div>
+    <div class="msg" id="signupMsg" role="status"></div>
+  </section>
+
+  <section aria-labelledby="h-links">
+    <div class="sec-head"><h2 id="h-links">Links</h2><button type="button" class="btn add" id="addLink">+ Link</button></div>
+    <div class="links" id="links"><div class="empty">Loading…</div></div>
+    <div class="msg" id="linkMsg" role="status"></div>
+  </section>
+
   <section aria-labelledby="h-soon"><h2 id="h-soon">Coming soon</h2><div class="grid" id="soon"></div></section>
   <section aria-labelledby="h-archive"><h2 id="h-archive">Archive</h2><div class="archive-list" id="archive"></div></section>
 </div>
-<script>
+<script type="module">
+import { read, upsert, patch, remove, poll } from '/lib/api.js';
+
 // Edit this block to add or change tools. status: "live", "preview", "idea" or "archive".
-const AUCTION_DATE = "2027-05-01";
-const AUCTION_LABEL = "Saturday, May 1, 2027 (date set for now)";
+const FALLBACK = { id: '', date: '2027-05-01', title: 'Auction night', status: 'tentative' };
 const TOOLS = [
   { name: "Org Chart", status: "live", url: "/org/",
     desc: "Every committee seat for 2027. Click any card or row to edit it." },
   { name: "Procurement Tracker", status: "live", url: "/tracker/",
     desc: "2027 overview plus a page for each donation stream, including the business donations CRM." },
   { name: "Contacts", status: "live", url: "/contacts/",
-    desc: "Volunteers, committee and PTA partners with email and phone. Search, copy and edit." },
+    desc: "Volunteers, committee and PTA partners with email and phone. Filter, copy and edit." },
   { name: "Calendar", status: "live", url: "/calendar/",
     desc: "Meetings, deadlines, goals and school dates. Click any day or event to edit it." },
+  { name: "Budget", status: "idea", desc: "Income goals and costs by line, tracked against last year." },
   { name: "Monday Procurement Digest", status: "idea", desc: "Weekly tally of donations in and asks out, with a team update drafted for you to send." },
   { name: "Donor Thank-You Log", status: "idea", desc: "Track each gift from received to receipt sent to thank-you sent. Feeds the tax letters." },
   { name: "Team Roster & Seat Sign-up", status: "idea", desc: "A roster volunteers can open to claim an empty seat." },
@@ -107,12 +162,15 @@ const TOOLS = [
     desc: "The chart before it moved to the sheet. No longer updated." }
 ];
 
+const $ = id => document.getElementById(id);
 const CHIP = { live: "Live", preview: "Preview", idea: "Idea", archive: "Archive" };
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 const external = url => /^https?:/.test(url);
-
+const rid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 function link(a, url) { a.href = url; if (external(url)) { a.target = "_blank"; a.rel = "noopener"; } }
+function say(id, text, bad) { const m = $(id); m.textContent = text || ''; m.classList.toggle('bad', !!bad); }
 
+/* ---------- tools ---------- */
 function tile(t) {
   const isLink = !!t.url && t.status !== "idea";
   const n = el(isLink ? "a" : "div", "tile" + (isLink ? "" : " soon"));
@@ -123,9 +181,8 @@ function tile(t) {
   if (isLink) n.append(el("div", "open", external(t.url) ? "Open ↗" : "Open"));
   return n;
 }
-
-function render() {
-  const tools = document.getElementById("tools"), soon = document.getElementById("soon"), arch = document.getElementById("archive");
+function renderTools() {
+  const tools = $("tools"), soon = $("soon"), arch = $("archive");
   TOOLS.forEach(t => {
     if (t.status === "archive") {
       const a = el("a"); link(a, t.url);
@@ -139,20 +196,156 @@ function render() {
   soon.closest("section").hidden = !soon.children.length;
 }
 
-function countdown() {
-  // Whole days from today (Pacific) to auction day.
-  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" });
-  const today = new Date(fmt.format(new Date()) + "T00:00:00Z");
-  const days = Math.round((new Date(AUCTION_DATE + "T00:00:00Z") - today) / 86400000);
-  const d = document.getElementById("days"), big = document.getElementById("count-big");
-  document.getElementById("count-sub").textContent = AUCTION_LABEL;
-  if (days > 0) { d.textContent = days; big.textContent = (days === 1 ? "day" : "days") + " to auction night · about " + Math.round(days / 7) + " weeks"; }
-  else if (days === 0) { d.textContent = "0"; big.textContent = "Auction night is today"; }
-  else { d.textContent = "✓"; big.textContent = "Auction night has passed"; }
+/* ---------- countdown: auction night plus major milestones from the Calendar tab ---------- */
+const MAJOR = ['deadline', 'goal', 'event'];
+const KEY = 'hq.countdown';
+let calendar = [];
+function todayPT() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
+const daysTo = d => Math.round((new Date(d + "T00:00:00Z") - new Date(todayPT() + "T00:00:00Z")) / 86400000);
+const longDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+const shortDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+function auctionRow() {
+  return calendar.find(r => /auction night/i.test(r.title)) || calendar.find(r => r.type === 'event' && /auction/i.test(r.title)) || FALLBACK;
+}
+function targets() {
+  const a = auctionRow(), today = todayPT();
+  const rest = calendar.filter(r => r !== a && r.date >= today && r.status !== 'done' && MAJOR.includes(r.type))
+    .sort((x, y) => x.date.localeCompare(y.date) || String(x.time).localeCompare(String(y.time)));
+  return [a, ...rest];
+}
+function readKey() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+function renderCountdown() {
+  const list = targets(), sel = $("target");
+  const want = sel.value || readKey();
+  sel.innerHTML = '';
+  list.forEach((r, i) => {
+    const o = el("option", null, (i === 0 ? r.title : shortDate(r.date) + " · " + r.title) + " · " + daysTo(r.date) + "d");
+    o.value = r.id || 'auction';
+    sel.append(o);
+  });
+  if ([...sel.options].some(o => o.value === want)) sel.value = want;
+  sel.hidden = list.length < 2;
+  const r = list.find(x => (x.id || 'auction') === sel.value) || list[0];
+  const days = daysTo(r.date), d = $("days"), big = $("count-big");
+  const name = r === list[0] ? "auction night" : r.title;
+  if (days > 0) { d.textContent = days; big.textContent = (days === 1 ? "day" : "days") + " to " + name; }
+  else if (days === 0) { d.textContent = "0"; big.textContent = r.title + " is today"; }
+  else { d.textContent = "✓"; big.textContent = r.title + " has passed"; }
+  const weeks = days > 13 ? " · about " + Math.round(days / 7) + " weeks" : "";
+  $("count-sub").textContent = longDate(r.date) + (r.status === 'tentative' ? " (tentative)" : "") + weeks;
+}
+$("target").addEventListener("change", e => { try { localStorage.setItem(KEY, e.target.value); } catch (x) {} renderCountdown(); });
 
-render();
-countdown();
+/* ---------- links: the Links tab, click the pencil to edit in place ---------- */
+let links = [], editing = null, armed = null, linkBusy = false;
+const byOrder = (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0);
+function groups() { const g = []; links.slice().sort(byOrder).forEach(l => { const k = l.group || 'Main'; if (!g.includes(k)) g.push(k); }); return g; }
+function linkForm(l) {
+  const f = el("form", "lform");
+  f.innerHTML = `<input name="name" placeholder="Name" aria-label="Link name" required>
+    <input name="url" placeholder="https://…" aria-label="Link address" required>
+    <input name="group" placeholder="Group" aria-label="Group" list="groupList">
+    <div class="acts">${l.id ? '<button type="button" class="btn" data-del>Delete</button>' : ''}<button type="button" class="btn" data-cancel>Cancel</button><button type="submit" class="btn">Save</button></div>`;
+  f.elements.name.value = l.name || ''; f.elements.url.value = l.url || ''; f.elements.group.value = l.group || 'Main';
+  f.addEventListener("submit", e => { e.preventDefault(); saveLink(l, f); });
+  f.querySelector("[data-cancel]").addEventListener("click", () => { editing = null; renderLinks(); });
+  const del = f.querySelector("[data-del]");
+  if (del) del.addEventListener("click", () => deleteLink(l, del));
+  f.addEventListener("keydown", e => { if (e.key === "Escape") { editing = null; renderLinks(); } });
+  return f;
+}
+function renderLinks() {
+  const host = $("links"); host.textContent = '';
+  const dl = el("datalist"); dl.id = "groupList"; groups().forEach(g => { const o = el("option"); o.value = g; dl.append(o); }); host.append(dl);
+  if (!links.length && editing !== 'new') host.append(el("div", "empty", "No links yet."));
+  groups().forEach(g => {
+    host.append(el("h3", null, g));
+    const grid = el("div", "lgrid");
+    links.filter(l => (l.group || 'Main') === g).sort(byOrder).forEach(l => {
+      if (editing === l.id) { grid.append(linkForm(l)); return; }
+      const row = el("div", "lk");
+      const a = el("a", null, l.name || l.url); link(a, l.url); a.title = l.url;
+      const ed = el("button", "ic", "✎"); ed.type = "button"; ed.setAttribute("aria-label", "Edit " + l.name);
+      ed.addEventListener("click", () => { editing = l.id; armed = null; renderLinks(); focusForm(); });
+      row.append(a, ed); grid.append(row);
+    });
+    host.append(grid);
+  });
+  if (editing === 'new') { const grid = el("div", "lgrid"); grid.append(linkForm({ group: groups()[0] || 'Main' })); host.append(grid); }
+}
+function focusForm() { setTimeout(() => { const f = document.querySelector(".lform input"); if (f) f.focus(); }, 0); }
+async function saveLink(l, f) {
+  if (linkBusy) return;
+  const v = k => f.elements[k].value.trim();
+  let url = v('url'); if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const row = { id: l.id || rid('ln-'), name: v('name'), url, group: v('group') || 'Main', note: l.note || '',
+    order: l.order || String(Math.max(0, ...links.map(x => Number(x.order) || 0)) + 1), updatedAt: new Date().toISOString() };
+  if (!row.name || !row.url) return;
+  linkBusy = true; say('linkMsg', 'Saving…');
+  try { await upsert('Links', row); const i = links.findIndex(x => x.id === row.id); if (i > -1) links[i] = row; else links.push(row); editing = null; renderLinks(); say('linkMsg', 'Saved'); }
+  catch (e) { say('linkMsg', 'Not saved. Try again.', true); }
+  linkBusy = false;
+}
+async function deleteLink(l, btn) {
+  if (linkBusy) return;
+  if (armed !== l.id) { armed = l.id; btn.textContent = 'Delete?'; return; }
+  linkBusy = true; say('linkMsg', 'Deleting…');
+  try { await remove('Links', l.id); links = links.filter(x => x.id !== l.id); editing = null; armed = null; renderLinks(); say('linkMsg', 'Deleted'); }
+  catch (e) { say('linkMsg', 'Not deleted. Try again.', true); }
+  linkBusy = false;
+}
+$("addLink").addEventListener("click", () => { editing = 'new'; renderLinks(); focusForm(); });
+
+/* ---------- committee sign-ups: the public /signup/ form writes to the Signups tab ---------- */
+let signups = [];
+const TEAM = h => /event night|set up|decor/i.test(h) ? 'Event' : 'Procurement';
+function renderSignups() {
+  const host = $("signups"); host.textContent = '';
+  if (!signups.length) { host.append(el("div", "empty", "No sign-ups yet.")); return; }
+  signups.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).forEach(s => {
+    const row = el("div", "row"), g = el("div", "grow");
+    g.append(el("strong", null, s.name), el("span", "sub", [s.help, s.email, s.phone].filter(Boolean).join(" · ")));
+    if (s.note) g.append(el("span", "sub", s.note));
+    row.append(g);
+    if (s.status === 'added') row.append(el("span", "chip live", "In Contacts"));
+    else {
+      const b = el("button", "btn", "Add to Contacts"); b.type = "button";
+      b.addEventListener("click", () => addContact(s, b));
+      row.append(el("span", "chip new", "New"), b);
+    }
+    host.append(row);
+  });
+}
+async function addContact(s, btn) {
+  btn.disabled = true; say('signupMsg', 'Adding…');
+  const c = { id: rid('c-'), name: s.name, role: s.help || '', email: s.email || '', phone: s.phone || '', status: '2027', team: TEAM(s.help || ''),
+    notes: s.note ? 'Signed up: ' + s.note : 'Signed up on the form', updatedAt: new Date().toISOString() };
+  try { await upsert('Contacts', c); await patch('Signups', s.id, { status: 'added', updatedAt: c.updatedAt }); s.status = 'added'; renderSignups(); say('signupMsg', s.name + ' added to Contacts.'); }
+  catch (e) { btn.disabled = false; say('signupMsg', 'Not added. Try again.', true); }
+}
+$("copyForm").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(location.origin + "/signup/"); $("copyForm").textContent = "Copied"; setTimeout(() => { $("copyForm").textContent = "Copy form link"; }, 1200); }
+  catch (e) { say('signupMsg', location.origin + "/signup/"); }
+});
+
+/* ---------- start ---------- */
+renderTools();
+async function load(first) {
+  if (editing || linkBusy) return;
+  try {
+    const t = await read(['Calendar', 'Links', 'Signups']);
+    calendar = (t.Calendar || []).filter(r => r.date && r.title);
+    links = (t.Links || []).filter(l => l.id && l.url);
+    signups = (t.Signups || []).filter(s => s.id);
+    renderCountdown(); renderLinks(); renderSignups();
+  } catch (e) {
+    if (first) { renderCountdown(); $("links").innerHTML = '<div class="empty">Links couldn’t load. Reload the page.</div>'; $("signups").innerHTML = '<div class="empty">Sign-ups couldn’t load.</div>'; }
+  }
+}
+load(true);
+poll(() => load(false), 60000);
 </script>
 </body>
 </html>

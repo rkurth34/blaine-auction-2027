@@ -56,6 +56,8 @@ input[type="search"], .field input, .field select, .field textarea {
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .filters button { min-height: 32px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.filters .sep { width: 1px; align-self: stretch; margin: 4px 4px; background: var(--line); }
+.add-phone { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; }
 .meta { font-size: 13px; color: var(--muted); min-height: 1.4em; }
 .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
@@ -138,13 +140,21 @@ import { read, upsert, remove, poll } from '/lib/api.js';
 const TAB = 'Contacts';
 const $ = id => document.getElementById(id);
 const STATUS = { "2027": "Confirmed 2027", "2026": "2026 team", partner: "PTA / advisor" };
-const FILTERS = [["all", "All"], ["2027", "Confirmed 2027"], ["2026", "2026 team"], ["partner", "PTA / advisor"], ["Procurement", "Procurement"], ["Event", "Event"]];
-let contacts = [], filter = "all", ready = false, editingId = null, armed = false, busy = false;
+// Pick any number of filters: within a row any match counts, across rows all must match.
+const FILTERS = [
+  ["status", [["2027", "Confirmed 2027"], ["2026", "2026 team"], ["partner", "PTA / advisor"]]],
+  ["team", [["Leadership", "Leadership"], ["Procurement", "Procurement"], ["Event", "Event"], ["Advisors", "Advisors"]]],
+  ["has", [["phone", "Has phone"], ["nophone", "No phone"]]]
+];
+const picked = { status: new Set(), team: new Set(), has: new Set() };
+let contacts = [], ready = false, editingId = null, armed = false, busy = false;
 
-function matches(c) {
-  if (filter === "all") return true;
-  if (STATUS[filter]) return c.status === filter;
-  return c.team === filter;
+function test(field, key, c) {
+  if (field === "has") return key === "phone" ? !!String(c.phone || "").trim() : !String(c.phone || "").trim();
+  return String(c[field]) === key;
+}
+function matches(c, skip) {
+  return Object.entries(picked).every(([f, set]) => f === skip || !set.size || [...set].some(k => test(f, k, c)));
 }
 function visible() {
   const q = $("q").value.trim().toLowerCase();
@@ -163,12 +173,23 @@ async function copy(text, btn) {
 
 function renderFilters() {
   const f = $("filters"); f.textContent = "";
-  FILTERS.forEach(([k, l]) => {
-    const n = k === "all" ? contacts.length : contacts.filter(c => (STATUS[k] ? c.status === k : c.team === k)).length;
-    const b = el("button", null, l + " " + n); b.type = "button"; b.setAttribute("aria-pressed", String(filter === k));
-    b.addEventListener("click", () => { filter = k; renderFilters(); render(); });
-    f.append(b);
+  const any = Object.values(picked).some(s => s.size);
+  const all = el("button", null, "All " + contacts.length); all.type = "button"; all.setAttribute("aria-pressed", String(!any));
+  all.addEventListener("click", () => { Object.values(picked).forEach(s => s.clear()); renderFilters(); render(); });
+  f.append(all);
+  FILTERS.forEach(([field, opts]) => {
+    f.append(el("span", "sep"));
+    opts.forEach(([k, l]) => {
+      const n = contacts.filter(c => matches(c, field) && test(field, k, c)).length;
+      const on = picked[field].has(k);
+      const b = el("button", null, l + " " + n); b.type = "button"; b.setAttribute("aria-pressed", String(on));
+      b.addEventListener("click", () => { on ? picked[field].delete(k) : picked[field].add(k); renderFilters(); render(); });
+      f.append(b);
+    });
   });
+  const n = [...new Set(visible().map(c => c.email).filter(Boolean))].length;
+  $("copyAll").textContent = "Copy " + n + " email" + (n === 1 ? "" : "s");
+  $("copyAll").disabled = !n;
 }
 function render() {
   const g = $("grid"); g.textContent = "";
@@ -183,7 +204,14 @@ function render() {
     top.append(who, el("span", "chip s" + c.status, STATUS[c.status] || c.status));
     card.append(top);
     if (c.email) { const l = el("div", "line"); l.append(el("span", "k", "Email"), el("span", "v", c.email), copyBtn(c.email, "email for " + c.name)); card.append(l); }
-    if (c.phone) { const l = el("div", "line"); l.append(el("span", "k", "Phone"), el("span", "v", c.phone), copyBtn(String(c.phone), "phone for " + c.name)); card.append(l); }
+    if (c.phone) {
+      const l = el("div", "line"), v = el("a", "v", c.phone); v.href = "tel:" + String(c.phone).replace(/[^\d+]/g, ""); v.style.color = "inherit";
+      l.append(el("span", "k", "Phone"), v, copyBtn(String(c.phone), "phone for " + c.name)); card.append(l);
+    } else {
+      const l = el("div", "line"), b = el("button", "add-phone", "+ Phone"); b.type = "button"; b.setAttribute("aria-label", "Add a phone for " + c.name);
+      b.addEventListener("click", () => { openDlg(c); $("f-phone").focus(); });
+      l.append(el("span", "k", "Phone"), b); card.append(l);
+    }
     if (c.notes) card.append(el("div", "note", c.notes));
     const foot = el("div", "foot"); const b = el("button", "btn small", "Edit"); b.type = "button";
     b.setAttribute("aria-label", "Edit " + c.name); b.addEventListener("click", () => openDlg(c)); foot.append(b); card.append(foot);
@@ -240,7 +268,7 @@ $("delBtn").addEventListener("click", async () => {
   } catch (err) { fail(); }
   setBusy(false);
 });
-$("q").addEventListener("input", render);
+$("q").addEventListener("input", () => { render(); renderFilters(); });
 $("copyAll").addEventListener("click", () => {
   const emails = [...new Set(visible().map(c => c.email).filter(Boolean))];
   if (emails.length) copy(emails.join(", "), $("copyAll"));
