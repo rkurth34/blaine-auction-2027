@@ -17,6 +17,7 @@
  *   saveOrg   { chart, rev }                   -> { rev }        Org chart JSON + readable tabs
  *   readOrg   {}                               -> { chart, rev }
  *   signup    { name, email, phone, help, note } -> { ok }        public: the committee sign-up form, no passcode
+ *             Each sign-up is emailed to the addresses in Script Properties (NOTIFY_TO, comma separated).
  *
  * The Calendar, Links and Signups tabs use read / upsert / remove like any other tab. Each is created
  * on first use, with every cell kept as plain text so dates and times come back as typed.
@@ -273,7 +274,32 @@ function signup(b) {
   row.status = 'new';
   row.updatedAt = row.at;
   t.sh.appendRow(t.headers.map(function (h) { return safe(row[h]); }));
+  notify(row);
   return { ok: true };
+}
+
+// Email the team about a new sign-up. A mail failure never loses the sign-up; the row is already saved.
+function notify(row) {
+  var to = String(PropertiesService.getScriptProperties().getProperty('NOTIFY_TO') || '').trim();
+  if (!to) return;
+  try {
+    MailApp.sendEmail({
+      to: to,
+      replyTo: row.email,
+      name: 'Blaine Auction sign-ups',
+      subject: 'Committee sign-up: ' + row.name,
+      body: [
+        row.name + ' signed up for the auction committee.',
+        '',
+        'Email: ' + row.email,
+        'Phone: ' + (row.phone || '-'),
+        'Help with: ' + (row.help || '-'),
+        'Note: ' + (row.note || '-'),
+        '',
+        'Add them to Contacts from Auction HQ: https://blaine-auction-2027.vercel.app/'
+      ].join('\n')
+    });
+  } catch (e) {}
 }
 
 function authorize() {
